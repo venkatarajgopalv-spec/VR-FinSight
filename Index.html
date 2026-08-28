@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VR FinSight | Financial Analysis &amp; Financial Health Insights</title>
+<meta name="description" content="VR FinSight helps users analyze financial ratios, understand financial health, identify risks, and generate actionable business insights." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237C4DFF'/%3E%3Cstop offset='1' stop-color='%2300E5FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M8 21 L13 13 L17 17 L24 7' stroke='%23050611' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =======================================================================
+   VR FinSight v2 — design tokens
+   Near-black canvas, violet→cyan signature gradient, glass surfaces
+======================================================================= */
+:root{
+  --bg:#06070d;
+  --bg-soft:#0a0c16;
+  --glass: rgba(255,255,255,0.035);
+  --glass-hi: rgba(255,255,255,0.06);
+  --border: rgba(255,255,255,0.09);
+  --border-hi: rgba(255,255,255,0.16);
+
+  --ink:#f3f4fb;
+  --ink-muted:#9298b3;
+  --ink-faint:#5c6180;
+
+  --v1:#7c4dff;   /* violet */
+  --v2:#00e5ff;   /* cyan */
+  --grad: linear-gradient(135deg, var(--v1), var(--v2));
+
+  --healthy:#3fe0a5;
+  --healthy-soft:rgba(63,224,165,0.12);
+  --warning:#ffb84d;
+  --warning-soft:rgba(255,184,77,0.12);
+  --critical:#ff5c7a;
+  --critical-soft:rgba(255,92,122,0.12);
+
+  --font-d:'Sora',sans-serif;
+  --font-b:'Inter',sans-serif;
+  --font-m:'JetBrains Mono',monospace;
+
+  --r-sm:10px; --r-md:16px; --r-lg:26px; --r-xl:34px;
+  --maxw:1180px;
+}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-b);
+  line-height:1.55; -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(900px 560px at 12% -8%, rgba(124,77,255,0.24), transparent 60%),
+    radial-gradient(760px 620px at 100% 4%, rgba(0,229,255,0.16), transparent 55%),
+    radial-gradient(700px 500px at 30% 110%, rgba(124,77,255,0.10), transparent 60%);
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.35;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+h1,h2,h3,h4{font-family:var(--font-d); font-weight:700; margin:0; letter-spacing:-0.015em;}
+p{margin:0;} a{color:inherit; text-decoration:none;} button{font-family:var(--font-b); cursor:pointer;}
+.mono{font-family:var(--font-m);}
+:focus-visible{outline:2px solid var(--v2); outline-offset:3px; border-radius:4px;}
+.container{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
+.hidden{display:none !important;}
+.grad-text{background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent;}
+
+/* reveal-on-scroll */
+.reveal{opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s ease;}
+.reveal.in{opacity:1; transform:translateY(0);}
+
+/* ---------------- Nav ---------------- */
+.navwrap{position:sticky; top:0; z-index:100; padding:16px 20px 0;}
+.navbar{
+  max-width:var(--maxw); margin:0 auto; display:flex; align-items:center; justify-content:space-between;
+  background:rgba(10,12,22,0.65); backdrop-filter:blur(18px); border:1px solid var(--border);
+  border-radius:100px; padding:9px 10px 9px 20px; box-shadow:0 10px 40px -18px rgba(0,0,0,0.7);
+}
+.brand{display:flex; align-items:center; gap:10px; font-family:var(--font-d); font-size:16.5px; font-weight:700;}
+.brand-mark{width:28px; height:28px; border-radius:9px; background:var(--grad); display:flex; align-items:center; justify-content:center; font-family:var(--font-m); font-size:12px; font-weight:700; color:#050611;}
+.nav-links{display:flex; align-items:center; gap:26px;}
+.nav-links a{font-size:14px; color:var(--ink-muted); transition:color .15s;}
+.nav-links a:hover{color:var(--ink);}
+.nav-cta{display:flex; align-items:center; gap:10px;}
+.hamburger{display:none; background:none; border:none; color:var(--ink); padding:8px;}
+
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:14px; font-weight:600; padding:12px 22px; border-radius:100px; border:1px solid transparent; transition:transform .15s, box-shadow .2s, background .15s, border-color .15s; white-space:nowrap;}
+.btn-primary{background:var(--grad); color:#050611; box-shadow:0 8px 26px -8px rgba(124,77,255,0.55);}
+.btn-primary:hover{transform:translateY(-2px); box-shadow:0 14px 32px -8px rgba(0,229,255,0.5);}
+.btn-secondary{background:var(--glass); border-color:var(--border); color:var(--ink);}
+.btn-secondary:hover{border-color:var(--v2); background:var(--glass-hi);}
+.btn-ghost{background:transparent; border-color:var(--border); color:var(--ink-muted);}
+.btn-ghost:hover{color:var(--ink); border-color:var(--v1);}
+.btn-sm{padding:9px 16px; font-size:13px; border-radius:100px;}
+.btn-block{width:100%;}
+.btn:disabled{opacity:.4; cursor:not-allowed; transform:none !important;}
+
+/* ---------------- Hero ---------------- */
+.hero{padding:88px 0 40px; position:relative;}
+.eyebrow{display:inline-flex; align-items:center; gap:8px; font-family:var(--font-m); font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--v2); background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.25); padding:7px 14px; border-radius:100px; margin-bottom:26px;}
+.eyebrow-dot{width:6px; height:6px; border-radius:50%; background:var(--v2); box-shadow:0 0 10px var(--v2);}
+.hero-grid{display:grid; grid-template-columns:1.05fr .95fr; gap:60px; align-items:center;}
+.hero h1{font-size:clamp(40px,5.6vw,66px); line-height:1.02; margin-bottom:22px;}
+.hero-sub{font-size:18px; color:var(--ink-muted); max-width:520px; margin-bottom:36px;}
+.hero-actions{display:flex; gap:14px; margin-bottom:44px; flex-wrap:wrap;}
+.hero-trust{display:flex; gap:34px; flex-wrap:wrap;}
+.trust-item .num{font-family:var(--font-m); font-size:22px; font-weight:700;}
+.trust-item .label{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+
+/* Signature: animated chart + floating score badge */
+.chart-stage{position:relative; height:420px;}
+.chart-glass{position:absolute; inset:0; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-xl); backdrop-filter:blur(10px); overflow:hidden; box-shadow:0 30px 70px -30px rgba(0,0,0,0.8);}
+.chart-glass .glow{position:absolute; width:340px; height:340px; border-radius:50%; background:radial-gradient(circle, rgba(124,77,255,0.35), transparent 70%); top:-120px; right:-100px; filter:blur(10px);}
+.chart-head{position:absolute; top:24px; left:26px; right:26px; display:flex; justify-content:space-between; align-items:center; z-index:3;}
+.chart-head .t1{font-family:var(--font-m); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+.chart-head .t2{display:flex; align-items:center; gap:6px; font-family:var(--font-m); font-size:11px; color:var(--healthy);}
+.chart-svg-wrap{position:absolute; left:0; right:0; bottom:0; top:60px;}
+.chart-path{fill:none; stroke:url(#lineGrad); stroke-width:3; stroke-linecap:round; stroke-dasharray:900; stroke-dashoffset:900; animation:draw 2.2s ease forwards .3s;}
+.chart-area{opacity:0; animation:fadein 1.5s ease forwards 1.6s;}
+@keyframes draw{to{stroke-dashoffset:0;}}
+@keyframes fadein{to{opacity:1;}}
+.chart-dot{opacity:0; animation:popin .5s ease forwards 2.3s;}
+@keyframes popin{from{opacity:0; transform:scale(0);} to{opacity:1; transform:scale(1);}}
+.score-badge{
+  position:absolute; right:22px; bottom:26px; z-index:4; background:rgba(9,10,20,0.85); backdrop-filter:blur(14px);
+  border:1px solid var(--border-hi); border-radius:var(--r-lg); padding:20px 24px; text-align:center; min-width:150px;
+  box-shadow:0 20px 50px -18px rgba(0,0,0,0.85); opacity:0; animation:popin .6s ease forwards 2.5s;
+}
+.score-badge .lbl{font-family:var(--font-m); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px;}
+.score-badge .val{font-family:var(--font-m); font-size:34px; font-weight:700;}
+.score-badge .val span{font-size:15px; color:var(--ink-faint);}
+.score-badge .tag{margin-top:8px; display:inline-block; font-size:11px; font-weight:700; padding:4px 10px; border-radius:100px; background:var(--healthy-soft); color:var(--healthy);}
+.mini-legend{position:absolute; left:26px; bottom:26px; z-index:4; display:flex; gap:14px;}
+.mini-legend .li{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-faint);}
+.mini-legend .dot{width:6px; height:6px; border-radius:50%;}
+
+/* ---------------- Sections ---------------- */
+.section{padding:96px 0;}
+.section-alt{background:linear-gradient(180deg, transparent, rgba(124,77,255,0.035), transparent); border-top:1px solid var(--border); border-bottom:1px solid var(--border);}
+.section-head{max-width:620px; margin-bottom:52px;}
+.section-eyebrow{font-family:var(--font-m); font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--v2); margin-bottom:14px; display:block;}
+.section-head h2{font-size:clamp(30px,3.6vw,42px); margin-bottom:16px;}
+.section-head p{color:var(--ink-muted); font-size:16.5px;}
+.center{text-align:center; margin-left:auto; margin-right:auto;}
+
+.steps-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:22px;}
+.step-card{position:relative; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-lg); padding:30px 24px; transition:transform .25s, border-color .25s, background .25s; overflow:hidden;}
+.step-card::before{content:""; position:absolute; inset:0; background:var(--grad); opacity:0; transition:opacity .25s; z-index:0;}
+.step-card:hover{transform:translateY(-6px); border-color:var(--border-hi);}
+.step-card:hover::before{opacity:.05;}
+.step-card > *{position:relative; z-index:1;}
+.step-num{font-family:var(--font-m); font-size:13px; color:var(--v2); margin-bottom:18px;}
+.step-card h3{font-size:19px; margin-bottom:10px;}
+.step-card p{color:var(--ink-muted); font-size:14.5px;}
+
+.about-grid{display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:center;}
+.about-card{background:var(--glass); border:1px solid var(--border); border-radius:var(--r-xl); padding:32px;}
+.about-card h3{font-size:21px; margin-bottom:12px;}
+.about-card p{color:var(--ink-muted); margin-bottom:20px; font-size:15px;}
+.credit-line{display:flex; align-items:center; gap:12px; padding-top:20px; border-top:1px solid var(--border);}
+.credit-avatar{width:42px; height:42px; border-radius:50%; background:var(--grad); display:flex; align-items:center; justify-content:center; font-family:var(--font-m); font-weight:700; color:#050611;}
+.credit-line .name{font-weight:600; font-size:14.5px;}
+.credit-line .title{font-size:12px; color:var(--ink-faint);}
+
+/* ---------------- Guided form flow ---------------- */
+.app-shell{min-height:70vh; padding:52px 0 100px;}
+.progress-wrap{max-width:720px; margin:0 auto 40px;}
+.progress-label{display:flex; justify-content:space-between; font-family:var(--font-m); font-size:12px; color:var(--ink-faint); margin-bottom:10px;}
+.progress-track{height:5px; background:var(--border); border-radius:100px; overflow:hidden;}
+.progress-fill{height:100%; background:var(--grad); border-radius:100px; transition:width .5s ease;}
+
+.form-card{max-width:720px; margin:0 auto; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-xl); padding:42px; box-shadow:0 30px 70px -35px rgba(0,0,0,0.75); backdrop-filter:blur(10px);}
+.form-card h2{font-size:27px; margin-bottom:8px;}
+.form-card .form-sub{color:var(--ink-muted); font-size:15px; margin-bottom:32px;}
+
+.field-group-title{font-family:var(--font-m); font-size:11.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--v2); margin-bottom:16px; padding-top:8px;}
+.field{margin-bottom:20px;}
+.field-label-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;}
+.field-label{font-size:14px; font-weight:500;}
+.field-badge{font-family:var(--font-m); font-size:10px; letter-spacing:.04em; padding:3px 9px; border-radius:100px; text-transform:uppercase;}
+.field-badge.required{background:rgba(124,77,255,0.14); color:#b39dff;}
+.field-badge.optional{background:var(--border); color:var(--ink-faint);}
+.field-input-wrap{position:relative;}
+.field-currency-prefix{position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-family:var(--font-m); font-size:14px; pointer-events:none;}
+.field input, .field select{width:100%; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; color:var(--ink); font-size:15px; padding:13px 16px; font-family:var(--font-m); transition:border-color .15s, background .15s;}
+.field input[type="text"]{font-family:var(--font-b);}
+.field select{font-family:var(--font-b); appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239298B3' stroke-width='1.6' fill='none'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 16px center; padding-right:38px;}
+
+/* ---------------- Custom dropdown (dark-themed, replaces native select) ---------------- */
+.cs-wrap{position:relative;}
+.cs-trigger{width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; color:var(--ink); font-size:15px; padding:13px 16px; font-family:var(--font-b); text-align:left; transition:border-color .15s, background .15s;}
+.cs-trigger .cs-placeholder{color:var(--ink-faint);}
+.cs-trigger:hover{border-color:var(--border-hi);}
+.cs-trigger.open{border-color:var(--v2); background:rgba(0,229,255,0.03);}
+.cs-trigger.invalid{border-color:var(--critical);}
+.cs-trigger .cs-arrow{flex-shrink:0; transition:transform .2s; color:var(--ink-faint);}
+.cs-trigger.open .cs-arrow{transform:rotate(180deg);}
+.cs-panel{position:fixed; background:#0d0f1c; border:1px solid var(--border-hi); border-radius:14px; box-shadow:0 24px 55px -20px rgba(0,0,0,0.9); max-height:280px; overflow-y:auto; z-index:500; padding:6px; display:none;}
+.cs-panel.open{display:block;}
+.cs-option{padding:11px 14px; border-radius:8px; font-size:14.5px; color:var(--ink-muted); cursor:pointer; transition:background .15s, color .15s;}
+.cs-option:hover{background:rgba(0,229,255,0.09); color:var(--ink);}
+.cs-option.selected{background:rgba(124,77,255,0.16); color:var(--ink); font-weight:600;}
+.field input.currency{padding-left:36px;}
+.field input:focus, .field select:focus{border-color:var(--v2); background:rgba(0,229,255,0.03); outline:none;}
+.field input.invalid{border-color:var(--critical);}
+/* Prevent browser autofill (e.g. remembered email) from forcing a white background */
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active{
+  -webkit-box-shadow: 0 0 0 1000px #0d0f1c inset !important;
+  -webkit-text-fill-color: var(--ink) !important;
+  caret-color: var(--ink);
+  transition: background-color 9999s ease-in-out 0s;
+}
+.field-help{font-size:12.5px; color:var(--ink-faint); margin-top:7px;}
+.field-error{font-size:12.5px; color:var(--critical); margin-top:7px; display:none;}
+.field-error.show{display:block;}
+.form-actions{display:flex; justify-content:space-between; align-items:center; margin-top:36px; padding-top:26px; border-top:1px solid var(--border);}
+
+.snapshot-panel{max-width:720px; margin:24px auto 0; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--r-lg); padding:22px 26px; display:none;}
+.snapshot-title{font-family:var(--font-m); font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:16px;}
+.snapshot-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:18px;}
+.snapshot-item .label{font-size:12px; color:var(--ink-faint); margin-bottom:5px;}
+.snapshot-item .value{font-family:var(--font-m); font-size:16.5px; font-weight:600;}
+
+.review-section{margin-bottom:22px;}
+.review-section h4{font-size:12.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--v2); margin-bottom:12px; font-family:var(--font-m);}
+.review-row{display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:14px;}
+.review-row .rlabel{color:var(--ink-muted);}
+.review-row .rvalue{font-family:var(--font-m); font-weight:600;}
+.review-row .rvalue.empty{color:var(--ink-faint); font-family:var(--font-b); font-weight:400; font-style:italic;}
+
+/* ---------------- Results ---------------- */
+.results-hero{padding:52px 0 22px;}
+.coverage-banner{display:flex; align-items:center; gap:24px; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px 28px; margin-bottom:34px;}
+.coverage-ring{position:relative; width:70px; height:70px; flex-shrink:0;}
+.coverage-ring svg{transform:rotate(-90deg);}
+.coverage-ring .pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-m); font-weight:700; font-size:15px;}
+.coverage-text .title{font-weight:600; margin-bottom:5px; font-family:var(--font-d);}
+.coverage-text .desc{color:var(--ink-muted); font-size:14px;}
+
+.score-hero{display:grid; grid-template-columns:.9fr 1.1fr; gap:32px; margin-bottom:48px;}
+.score-card-main{position:relative; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-xl); padding:36px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; overflow:hidden;}
+.score-card-main::before{content:""; position:absolute; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle, rgba(124,77,255,0.28), transparent 70%); top:-100px; left:-80px; filter:blur(4px);}
+.score-card-main > *{position:relative; z-index:1;}
+.score-label{font-family:var(--font-m); font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;}
+.score-big{font-family:var(--font-m); font-size:72px; font-weight:700; line-height:1; margin-bottom:8px;}
+.score-max{font-size:19px; color:var(--ink-faint); font-family:var(--font-m);}
+.score-verdict-chip{margin-top:16px; font-size:13px; padding:7px 16px; border-radius:100px; font-weight:600;}
+.methodology-link{margin-top:20px; font-size:12.5px; color:var(--v2); border-bottom:1px dashed var(--v2); cursor:pointer;}
+
+.category-breakdown{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+.category-score-card{background:var(--glass); border:1px solid var(--border); border-radius:var(--r-lg); padding:22px; transition:transform .2s, border-color .2s;}
+.category-score-card:hover{transform:translateY(-3px); border-color:var(--border-hi);}
+.category-score-card .cname{font-size:13.5px; color:var(--ink-muted); margin-bottom:12px;}
+.category-score-card .cvalue{font-family:var(--font-m); font-size:30px; font-weight:700; margin-bottom:12px;}
+.mini-bar-track{height:6px; background:var(--border); border-radius:100px; overflow:hidden;}
+.mini-bar-fill{height:100%; border-radius:100px; transition:width 1s ease;}
+
+.category-section{margin-bottom:56px;}
+.category-header{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:8px;}
+.category-header h3{font-size:23px;}
+.category-header .cat-meta{font-family:var(--font-m); font-size:12.5px; color:var(--ink-faint);}
+.ratio-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:20px;}
+
+.ratio-card{position:relative; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px; transition:border-color .2s, transform .2s;}
+.ratio-card:hover{transform:translateY(-3px); border-color:var(--border-hi);}
+.ratio-card::before{content:""; position:absolute; top:0; left:24px; right:24px; height:2px; border-radius:2px;}
+.ratio-card.status-healthy::before{background:var(--healthy);}
+.ratio-card.status-warning::before{background:var(--warning);}
+.ratio-card.status-critical::before{background:var(--critical);}
+.ratio-card.status-unavailable::before{background:var(--ink-faint);}
+.ratio-card-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:10px;}
+.ratio-name{font-size:14.5px; color:var(--ink-muted); font-weight:500;}
+.status-badge{display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; padding:5px 11px; border-radius:100px; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0;}
+.status-badge.healthy{background:var(--healthy-soft); color:var(--healthy);}
+.status-badge.warning{background:var(--warning-soft); color:var(--warning);}
+.status-badge.critical{background:var(--critical-soft); color:var(--critical);}
+.status-badge.unavailable{background:var(--border); color:var(--ink-faint);}
+.ratio-value{font-family:var(--font-m); font-size:32px; font-weight:700; margin:8px 0 12px;}
+.ratio-interpretation{font-size:13.5px; color:var(--ink-muted); margin-bottom:18px; line-height:1.55;}
+.ratio-unavailable-msg{font-size:13.5px; color:var(--ink-faint); margin-bottom:16px; line-height:1.55;}
+.ratio-actions{display:flex; flex-wrap:wrap; gap:8px;}
+.ratio-toggle{font-size:12px; padding:8px 13px; border-radius:100px; background:rgba(255,255,255,0.02); border:1px solid var(--border); color:var(--ink-muted); transition:all .15s;}
+.ratio-toggle:hover{color:var(--v2); border-color:var(--v2);}
+.ratio-toggle.active{color:var(--v2); border-color:var(--v2); background:rgba(0,229,255,0.06);}
+.ratio-panel{display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--border); font-size:13.5px;}
+.ratio-panel.show{display:block;}
+.ratio-panel .panel-label{font-family:var(--font-m); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); margin-bottom:7px;}
+.ratio-panel .panel-formula{font-family:var(--font-m); color:var(--v2); margin-bottom:13px;}
+.ratio-panel .panel-calc{font-family:var(--font-m); color:var(--ink); margin-bottom:13px;}
+.ratio-panel p{color:var(--ink-muted); line-height:1.55;}
+.add-missing-btn{margin-top:12px;}
+
+.diagnosis-block{position:relative; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-xl); padding:40px; margin-bottom:48px; overflow:hidden;}
+.diagnosis-block::before{content:""; position:absolute; width:320px; height:320px; border-radius:50%; background:radial-gradient(circle, rgba(0,229,255,0.14), transparent 70%); top:-140px; right:-100px;}
+.diagnosis-block > *{position:relative; z-index:1;}
+.diagnosis-eyebrow{font-family:var(--font-m); font-size:12px; color:var(--v2); text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px;}
+.diagnosis-headline{font-size:clamp(23px,3.2vw,32px); margin-bottom:28px;}
+.diagnosis-cols{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+.diagnosis-col h4{font-size:14px; margin-bottom:14px; display:flex; align-items:center; gap:8px; font-family:var(--font-d);}
+.diagnosis-col ul{margin:0; padding-left:18px; color:var(--ink-muted); font-size:13.5px; line-height:1.7;}
+.diagnosis-col ul li{margin-bottom:7px;}
+.diagnosis-empty{color:var(--ink-faint); font-size:13px; font-style:italic;}
+
+.finding-card{background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--r-md); padding:19px 21px; margin-bottom:14px;}
+.finding-card .fname{font-weight:600; font-size:14.5px; margin-bottom:7px; display:flex; align-items:center; gap:8px;}
+.finding-card p{font-size:13.5px; color:var(--ink-muted); line-height:1.55; margin-bottom:6px;}
+.finding-card .frec{color:var(--v2); font-size:13px;}
+
+.action-plan{margin-bottom:48px;}
+.priority-block{margin-bottom:24px;}
+.priority-head{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+.priority-tag{font-family:var(--font-m); font-size:11.5px; font-weight:700; padding:6px 14px; border-radius:100px; letter-spacing:.03em;}
+.priority-tag.high{background:var(--critical-soft); color:var(--critical);}
+.priority-tag.medium{background:var(--warning-soft); color:var(--warning);}
+.priority-tag.low{background:var(--healthy-soft); color:var(--healthy);}
+.action-card{background:var(--glass); border:1px solid var(--border); border-radius:var(--r-md); padding:22px 24px; margin-bottom:13px;}
+.action-card .problem{font-weight:600; font-size:15.5px; margin-bottom:9px; font-family:var(--font-d);}
+.action-card .why{font-size:13px; color:var(--ink-faint); margin-bottom:9px;}
+.action-card .action{font-size:13.5px; color:var(--ink-muted); line-height:1.5; padding-top:9px; border-top:1px solid var(--border);}
+.action-card .action b{color:var(--v2);}
+
+.results-footer-actions{display:flex; gap:14px; justify-content:center; margin-top:20px; flex-wrap:wrap;}
+
+/* ---------------- Modal ---------------- */
+.modal-overlay{position:fixed; inset:0; background:rgba(4,5,10,0.75); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; z-index:200; padding:20px;}
+.modal-box{background:#0b0d18; border:1px solid var(--border-hi); border-radius:var(--r-xl); max-width:480px; width:100%; padding:36px; box-shadow:0 40px 80px -25px rgba(0,0,0,0.85); max-height:90vh; overflow-y:auto;}
+.modal-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:26px;}
+.modal-head h3{font-size:22px; margin-bottom:5px;}
+.modal-head p{font-size:13.5px; color:var(--ink-muted);}
+.modal-close{background:none; border:none; color:var(--ink-faint); font-size:20px; padding:4px;}
+.modal-close:hover{color:var(--ink);}
+.modal-success{text-align:center; padding:22px 0;}
+.modal-success .icon{width:58px; height:58px; border-radius:50%; background:var(--healthy-soft); color:var(--healthy); display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:27px;}
+.modal-success h3{margin-bottom:9px;}
+.modal-success p{color:var(--ink-muted); font-size:14px;}
+textarea{width:100%; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; color:var(--ink); font-family:var(--font-b); font-size:14.5px; padding:13px 16px; resize:vertical;}
+
+/* ---------------- Footer ---------------- */
+footer{border-top:1px solid var(--border); padding:60px 0 34px; margin-top:40px;}
+.footer-grid{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:44px; margin-bottom:44px;}
+.footer-brand h3{font-size:21px; margin-bottom:9px;}
+.footer-brand p{color:var(--ink-muted); font-size:14px; max-width:320px;}
+.footer-col h4{font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-faint); margin-bottom:18px; font-family:var(--font-m);}
+.footer-col a{display:block; font-size:14px; color:var(--ink-muted); margin-bottom:13px; transition:color .15s;}
+.footer-col a:hover{color:var(--v2);}
+.footer-bottom{border-top:1px solid var(--border); padding-top:26px;}
+.footer-credit{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;}
+.footer-credit .name{font-size:13.5px; color:var(--ink-muted);}
+.footer-credit .copyright{font-size:12.5px; color:var(--ink-faint); font-family:var(--font-m);}
+.footer-disclaimer{font-size:12px; color:var(--ink-faint); line-height:1.65; max-width:900px;}
+
+/* ---------------- Toast ---------------- */
+.toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); background:#0b0d18; border:1px solid var(--border-hi); color:var(--ink); padding:15px 22px; border-radius:100px; font-size:14px; opacity:0; transition:all .3s; z-index:300; box-shadow:0 20px 50px -20px rgba(0,0,0,0.85);}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+/* ---------------- Responsive ---------------- */
+@media (max-width:960px){
+  .hero-grid{grid-template-columns:1fr;} .chart-stage{height:340px;}
+  .steps-grid{grid-template-columns:repeat(2,1fr);}
+  .about-grid{grid-template-columns:1fr;}
+  .score-hero{grid-template-columns:1fr;}
+  .diagnosis-cols{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:680px){
+  .nav-links{display:none;} .hamburger{display:block;}
+  .nav-cta .btn-secondary{display:none;}
+  .hero{padding:36px 0 30px;}
+  .navwrap{padding:12px 14px 0;}
+  .steps-grid{grid-template-columns:1fr;}
+  .form-card{padding:28px 22px;}
+  .category-breakdown{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:1fr; gap:30px;}
+  .form-actions{flex-direction:column-reverse; gap:12px; align-items:stretch;}
+  .score-big{font-size:56px;}
+}
+.nav-links.mobile-open{display:flex; position:absolute; top:64px; left:0; right:0; background:#0b0d18; border:1px solid var(--border); flex-direction:column; padding:22px 24px; border-radius:20px; gap:18px;}
+</style>
+</head>
+<body>
+
+<div class="navwrap">
+  <div class="navbar">
+    <a href="#home" class="brand"><span class="brand-mark">VR</span> VR FinSight</a>
+    <div class="nav-links" id="navLinks">
+      <a href="#home">Home</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#" data-action="start-analysis">Start Analysis</a>
+      <a href="#about">About</a>
+      <a href="#" data-action="open-connect">Connect</a>
+    </div>
+    <div class="nav-cta">
+      <button class="btn btn-secondary btn-sm" data-action="open-connect">Connect</button>
+      <button class="btn btn-primary btn-sm" data-action="start-analysis">Start Analysis</button>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 22 22" fill="none"><path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<main id="mainContent">
+  <div id="screen-landing">
+
+    <section class="hero" id="home">
+      <div class="container hero-grid">
+        <div class="reveal in">
+          <span class="eyebrow"><span class="eyebrow-dot"></span> Manual-entry financial analysis</span>
+          <h1>See the numbers.<br><span class="grad-text">Understand the business.</span></h1>
+          <p class="hero-sub">Turn financial numbers into meaningful business insights. Enter your company's financial information and let VR FinSight calculate, interpret, diagnose, and recommend.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" data-action="start-analysis">START ANALYSIS →</button>
+            <a href="#how-it-works" class="btn btn-secondary">HOW IT WORKS</a>
+          </div>
+          <div class="hero-trust">
+            <div class="trust-item"><div class="num mono grad-text">17</div><div class="label">Ratios calculated</div></div>
+            <div class="trust-item"><div class="num mono grad-text">4</div><div class="label">Analysis categories</div></div>
+            <div class="trust-item"><div class="num mono grad-text">0</div><div class="label">Files to upload</div></div>
+          </div>
+        </div>
+
+        <div class="chart-stage reveal in" aria-hidden="true">
+          <div class="chart-glass">
+            <div class="glow"></div>
+            <div class="chart-head">
+              <span class="t1">Financial Health · Sample Trend</span>
+              <span class="t2"><span class="eyebrow-dot" style="background:var(--healthy); box-shadow:0 0 8px var(--healthy);"></span> Live model</span>
+            </div>
+            <div class="chart-svg-wrap">
+              <svg width="100%" height="100%" viewBox="0 0 420 320" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#7c4dff"/><stop offset="1" stop-color="#00e5ff"/>
+                  </linearGradient>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#00e5ff" stop-opacity="0.28"/>
+                    <stop offset="1" stop-color="#00e5ff" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path class="chart-area" d="M10,230 C70,220 90,260 140,235 C190,210 210,150 260,140 C310,130 330,90 400,70 L400,320 L10,320 Z" fill="url(#areaGrad)"/>
+                <path class="chart-path" d="M10,230 C70,220 90,260 140,235 C190,210 210,150 260,140 C310,130 330,90 400,70" />
+                <circle class="chart-dot" cx="400" cy="70" r="6" fill="#00e5ff"/>
+                <circle class="chart-dot" cx="400" cy="70" r="11" fill="none" stroke="#00e5ff" stroke-width="1.5" opacity="0.5"/>
+              </svg>
+            </div>
+            <div class="mini-legend">
+              <span class="li"><span class="dot" style="background:var(--healthy);"></span>Healthy</span>
+              <span class="li"><span class="dot" style="background:var(--warning);"></span>Warning</span>
+              <span class="li"><span class="dot" style="background:var(--critical);"></span>Critical</span>
+            </div>
+            <div class="score-badge">
+              <div class="lbl">Health Score</div>
+              <div class="val">71<span>/100</span></div>
+              <div class="tag">Stable</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="section-eyebrow">The process</span>
+          <h2>How it works</h2>
+          <p>A guided four-step journey from raw numbers to a clear financial diagnosis.</p>
+        </div>
+        <div class="steps-grid">
+          <div class="step-card reveal"><div class="step-num">01</div><h3>Enter</h3><p>Enter the financial numbers you know — nothing to upload, no spreadsheets required.</p></div>
+          <div class="step-card reveal"><div class="step-num">02</div><h3>Analyze</h3><p>VR FinSight calculates every relevant financial ratio from your entries.</p></div>
+          <div class="step-card reveal"><div class="step-num">03</div><h3>Understand</h3><p>Each ratio is explained in plain language — what it means and why it matters.</p></div>
+          <div class="step-card reveal"><div class="step-num">04</div><h3>Improve</h3><p>VR FinSight identifies financial problems and recommends specific actions.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-alt" id="about">
+      <div class="container about-grid">
+        <div class="reveal">
+          <span class="section-eyebrow">About</span>
+          <h2 style="margin-bottom:18px;">Built to make ratio analysis understandable</h2>
+          <p style="color:var(--ink-muted); font-size:15.5px; margin-bottom:16px;">VR FinSight was created to make financial ratio analysis easier to understand by connecting financial calculations with plain-language business interpretation — for founders, students, and analysts who know their numbers but want a clearer read on what those numbers mean together.</p>
+          <p style="color:var(--ink-muted); font-size:15.5px;">Every calculation is transparent: you can always see the exact formula and the exact figures used to reach a result.</p>
+        </div>
+        <div class="about-card reveal">
+          <h3>Built by Venkata Raj Gopal</h3>
+          <p>VR FinSight is a financial analysis platform designed to transform financial statement inputs into understandable ratios, financial diagnostics, and actionable insights.</p>
+          <div class="credit-line">
+            <div class="credit-avatar">VR</div>
+            <div><div class="name">Venkata Raj Gopal</div><div class="title">MBA | Finance &amp; Business Analytics</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head center reveal" style="max-width:560px;">
+          <span class="section-eyebrow">Ready when you are</span>
+          <h2>Start your analysis</h2>
+          <p>Takes about five minutes. Only the figures you actually have.</p>
+        </div>
+        <div style="display:flex; justify-content:center;" class="reveal">
+          <button class="btn btn-primary" data-action="start-analysis" style="padding:17px 36px; font-size:15.5px;">START ANALYSIS →</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="screen-app" class="app-shell hidden">
+    <div class="container" id="appContainer"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h3>VR FinSight</h3>
+        <p>"See the numbers. Understand the business."</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <a href="#home">Home</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#" data-action="start-analysis">Start Analysis</a>
+        <a href="#about">About</a>
+        <a href="#" data-action="open-connect">Connect</a>
+      </div>
+      <div class="footer-col">
+        <h4>Elsewhere</h4>
+        <a href="https://venkata-portfolio-plum.vercel.app/" target="_blank" rel="noopener">Portfolio</a>
+        <a href="https://www.linkedin.com/in/venkatarajgopalv712b06267" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="#" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-credit">
+        <span class="name">Built &amp; Designed by Venkata Raj Gopal · MBA | Finance &amp; Business Analytics</span>
+        <span class="copyright">© 2026 VR FinSight · All Rights Reserved</span>
+      </div>
+      <p class="footer-disclaimer">VR FinSight provides analytical insights based on information entered by the user. Results are for educational and analytical purposes only and should not be considered professional financial, investment, accounting, or legal advice. Financial information entered into VR FinSight is used to generate the analysis and is not intended to be stored permanently.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+<iframe name="formsubmitHiddenFrame" id="formsubmitHiddenFrame" style="display:none;" title="Form submission handler"></iframe>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================ CONFIG ============================ */
+var LINKS = { portfolio:"https://venkata-portfolio-plum.vercel.app/", linkedin:"https://www.linkedin.com/in/venkatarajgopalv712b06267", github:"#" };
+var CURRENCIES = {
+  INR:{symbol:"₹", label:"INR — Indian Rupee"}, USD:{symbol:"$", label:"USD — US Dollar"},
+  EUR:{symbol:"€", label:"EUR — Euro"}, GBP:{symbol:"£", label:"GBP — British Pound"}, AED:{symbol:"د.إ", label:"AED — UAE Dirham"}
+};
+var INDUSTRIES = ["Manufacturing","Retail","IT / Technology","Healthcare","Banking / Financial Services","FMCG","Automobile","Construction","Logistics","Other"];
+
+function formatCurrency(value, currencyCode){
+  currencyCode = currencyCode || "INR";
+  if(value===null||value===undefined||isNaN(value)) return "—";
+  var cur = CURRENCIES[currencyCode]||CURRENCIES.INR;
+  var abs = Math.abs(value), sign = value<0?"-":"";
+  if(currencyCode==="INR"){
+    if(abs>=1e7) return sign+cur.symbol+(abs/1e7).toFixed(2)+" Cr";
+    if(abs>=1e5) return sign+cur.symbol+(abs/1e5).toFixed(2)+" Lakh";
+    return sign+cur.symbol+abs.toLocaleString("en-IN",{maximumFractionDigits:0});
+  }
+  if(abs>=1e9) return sign+cur.symbol+(abs/1e9).toFixed(2)+"B";
+  if(abs>=1e6) return sign+cur.symbol+(abs/1e6).toFixed(2)+"M";
+  if(abs>=1e3) return sign+cur.symbol+(abs/1e3).toFixed(1)+"K";
+  return sign+cur.symbol+abs.toLocaleString("en-US",{maximumFractionDigits:0});
+}
+function formatNumber(value, decimals){
+  if(decimals===undefined) decimals=2;
+  if(value===null||value===undefined||isNaN(value)) return "—";
+  return value.toLocaleString("en-IN",{maximumFractionDigits:decimals, minimumFractionDigits:0});
+}
+function formatPercent(value, decimals){
+  if(decimals===undefined) decimals=1;
+  if(value===null||value===undefined||isNaN(value)) return "—";
+  return value.toFixed(decimals)+"%";
+}
+function esc(s){ return (s==null?"":s).toString().replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+/* ============================ FIELD SCHEMA ============================ */
+var COMPANY_FIELDS = [
+  {key:"companyName", label:"Company Name", type:"text", required:true, placeholder:"e.g. Meridian Textiles Pvt Ltd"},
+  {key:"industry", label:"Industry", type:"select", required:true},
+  {key:"financialYear", label:"Financial Year", type:"text", required:true, placeholder:"e.g. FY 2025–26"},
+  {key:"currency", label:"Currency", type:"select", required:true}
+];
+var INCOME_FIELDS = [
+  {key:"revenue", label:"Revenue / Sales", required:true, help:"Total income earned from core business operations before any deductions."},
+  {key:"cogs", label:"Cost of Goods Sold (COGS)", required:true, help:"Direct cost of producing the goods or services sold."},
+  {key:"operatingExpenses", label:"Operating Expenses", required:true, help:"Selling, general, administrative and other operating costs (excluding COGS)."},
+  {key:"interestExpense", label:"Interest Expense", required:true, help:"Interest paid on borrowings during the period."},
+  {key:"taxExpense", label:"Tax Expense", required:false, help:"Income tax charged for the period. Leave blank if unknown — Net Profit-based ratios will be shown as unavailable instead of estimated."}
+];
+var BALANCE_FIELDS = {
+  currentAssets:[
+    {key:"cash", label:"Cash & Cash Equivalents", required:true, help:"Cash on hand, bank balances, and short-term liquid investments."},
+    {key:"receivables", label:"Accounts Receivable", required:false, help:"Amounts owed to the company by customers."},
+    {key:"inventory", label:"Inventory", required:false, help:"Value of raw materials, work-in-progress, and finished goods on hand."},
+    {key:"otherCurrentAssets", label:"Other Current Assets", required:false, help:"Prepaid expenses, short-term advances, and similar items."}
+  ],
+  nonCurrentAssets:[
+    {key:"ppe", label:"Property, Plant & Equipment", required:false, help:"Net book value of land, buildings, machinery, and equipment."},
+    {key:"otherNonCurrentAssets", label:"Other Non-Current Assets", required:false, help:"Intangibles, long-term investments, and other long-term assets."}
+  ],
+  currentLiabilities:[
+    {key:"payables", label:"Accounts Payable", required:false, help:"Amounts owed by the company to suppliers."},
+    {key:"shortTermBorrowings", label:"Short-Term Borrowings", required:false, help:"Loans, overdrafts, and other borrowings due within a year."},
+    {key:"otherCurrentLiabilities", label:"Other Current Liabilities", required:false, help:"Accrued expenses and other short-term obligations."}
+  ],
+  longTermFinancing:[
+    {key:"longTermDebt", label:"Long-Term Debt", required:true, help:"Borrowings and debentures due beyond one year."},
+    {key:"preferenceCapital", label:"Preference Share Capital", required:false, help:"Capital raised through preference shares, treated as a fixed-interest-bearing security."},
+    {key:"equityCapital", label:"Equity Share Capital", required:true, help:"Paid-up capital held by equity shareholders."},
+    {key:"reserves", label:"Reserves & Surplus", required:true, help:"Retained earnings and other reserves belonging to shareholders."}
+  ]
+};
+var ALL_BALANCE_FIELDS = [].concat(BALANCE_FIELDS.currentAssets, BALANCE_FIELDS.nonCurrentAssets, BALANCE_FIELDS.currentLiabilities, BALANCE_FIELDS.longTermFinancing);
+
+/* ============================ VALIDATION ============================ */
+function validateNumberField(rawValue, field){
+  var trimmed = (rawValue==null?"":rawValue).toString().trim();
+  if(trimmed===""){ if(field.required) return {valid:false, error:field.label+" is required."}; return {valid:true, value:null}; }
+  var num = Number(trimmed.replace(/,/g,""));
+  if(isNaN(num)) return {valid:false, error:field.label+" must be a valid number."};
+  if(!isFinite(num)) return {valid:false, error:field.label+" is too large to process."};
+  if(num<0 && !field.allowNegative) return {valid:false, error:field.label+" cannot be negative."};
+  if(Math.abs(num)>1e15) return {valid:false, error:field.label+" value is unrealistically large. Please check the figure."};
+  return {valid:true, value:num};
+}
+function validateTextField(rawValue, field){
+  var trimmed = (rawValue==null?"":rawValue).toString().trim();
+  if(field.required && trimmed==="") return {valid:false, error:field.label+" is required."};
+  return {valid:true, value:trimmed};
+}
+function validateStep(fields, values){
+  var errors={}, allValid=true;
+  fields.forEach(function(field){
+    var raw = values[field.key];
+    var result = (field.type==="text"||field.type==="select") ? validateTextField(raw, field) : validateNumberField(raw, field);
+    if(!result.valid){ errors[field.key]=result.error; allValid=false; }
+  });
+  return {allValid:allValid, errors:errors};
+}
+function validateContactForm(data){
+  var errors={};
+  if(!data.name || data.name.trim()==="") errors.name="Please enter your name.";
+  var emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if(!data.email || !emailPattern.test(data.email.trim())) errors.email="Please enter a valid email address.";
+  if(!data.message || data.message.trim().length<10) errors.message="Message should be at least 10 characters.";
+  return {allValid:Object.keys(errors).length===0, errors:errors};
+}
+
+/* ============================ DERIVE ============================ */
+function sumOptional(){
+  var vals = Array.prototype.slice.call(arguments).filter(function(v){ return v!==null && v!==undefined; });
+  if(vals.length===0) return null;
+  return vals.reduce(function(a,b){ return a+b; },0);
+}
+function need(){
+  var vals = Array.prototype.slice.call(arguments);
+  return vals.every(function(v){ return v!==null && v!==undefined; }) ? vals : null;
+}
+function deriveFinancials(income, balance){
+  var d = {};
+  d.revenue = income.revenue==null?null:income.revenue;
+  d.cogs = income.cogs==null?null:income.cogs;
+  d.operatingExpenses = income.operatingExpenses==null?null:income.operatingExpenses;
+  d.interestExpense = income.interestExpense==null?null:income.interestExpense;
+  d.taxExpense = income.taxExpense==null?null:income.taxExpense;
+
+  d.grossProfit = need(d.revenue,d.cogs) ? d.revenue-d.cogs : null;
+  d.operatingProfit = need(d.grossProfit,d.operatingExpenses) ? d.grossProfit-d.operatingExpenses : null;
+  d.ebit = d.operatingProfit;
+  d.profitBeforeTax = need(d.operatingProfit,d.interestExpense) ? d.operatingProfit-d.interestExpense : null;
+  d.netProfit = (d.taxExpense!==null && need(d.profitBeforeTax,d.taxExpense)) ? d.profitBeforeTax-d.taxExpense : null;
+
+  d.cash = balance.cash==null?null:balance.cash;
+  d.receivables = balance.receivables==null?null:balance.receivables;
+  d.inventory = balance.inventory==null?null:balance.inventory;
+  d.otherCurrentAssets = balance.otherCurrentAssets==null?null:balance.otherCurrentAssets;
+  d.currentAssets = d.cash!==null ? sumOptional(d.cash,d.receivables,d.inventory,d.otherCurrentAssets) : null;
+
+  d.ppe = balance.ppe==null?null:balance.ppe;
+  d.otherNonCurrentAssets = balance.otherNonCurrentAssets==null?null:balance.otherNonCurrentAssets;
+  d.nonCurrentAssets = sumOptional(d.ppe, d.otherNonCurrentAssets);
+
+  d.totalAssets = d.currentAssets!==null ? d.currentAssets + (d.nonCurrentAssets!==null?d.nonCurrentAssets:0) : null;
+
+  d.payables = balance.payables==null?null:balance.payables;
+  d.shortTermBorrowings = balance.shortTermBorrowings==null?null:balance.shortTermBorrowings;
+  d.otherCurrentLiabilities = balance.otherCurrentLiabilities==null?null:balance.otherCurrentLiabilities;
+  d.currentLiabilities = sumOptional(d.payables, d.shortTermBorrowings, d.otherCurrentLiabilities);
+
+  d.longTermDebt = balance.longTermDebt==null?null:balance.longTermDebt;
+  d.preferenceCapital = balance.preferenceCapital==null?null:balance.preferenceCapital;
+  d.equityCapital = balance.equityCapital==null?null:balance.equityCapital;
+  d.reserves = balance.reserves==null?null:balance.reserves;
+
+  d.shareholdersEquity = need(d.equityCapital, d.reserves) ? d.equityCapital+d.reserves : null;
+  d.totalDebt = d.longTermDebt!==null ? d.longTermDebt + (d.shortTermBorrowings!==null?d.shortTermBorrowings:0) : null;
+  d.fixedInterestBearingSecurities = sumOptional(d.longTermDebt, d.preferenceCapital);
+  return d;
+}
+
+/* ============================ RATIOS ============================ */
+function available(derived, keys){ return keys.every(function(k){ return derived[k]!==null && derived[k]!==undefined; }); }
+function fmt(v,cur){ return formatCurrency(v,cur); }
+
+var CATEGORY_LABELS = {liquidity:"Liquidity", solvency:"Capital Structure / Solvency", profitability:"Profitability", efficiency:"Efficiency / Activity"};
+
+var RATIOS = [
+  {key:"currentRatio", name:"Current Ratio", category:"liquidity", unit:"x", formula:"Current Assets ÷ Current Liabilities",
+   requiredKeys:["currentAssets","currentLiabilities"],
+   calculate:function(d){ return d.currentLiabilities===0?null:d.currentAssets/d.currentLiabilities; },
+   formulaCalc:function(d,cur){ return fmt(d.currentAssets,cur)+" ÷ "+fmt(d.currentLiabilities,cur); },
+   status:function(v){ return v===null?null:(v>=1.5?"healthy":v>=1?"warning":"critical"); },
+   interpret:function(v){ return "The company has "+formatNumber(v)+" of current assets for every ₹1 of current liabilities."; },
+   whyItMatters:"Current Ratio measures the company's ability to meet its short-term obligations using current assets. It is the broadest liquidity check.",
+   recommend:function(s){ return {healthy:"Liquidity buffer looks comfortable. Keep monitoring so idle current assets don't build up unproductively.", warning:"The buffer is thin. Tighten receivables collection and review short-term borrowing levels before they compress liquidity further.", critical:"Current liabilities exceed current assets significantly. Prioritise renegotiating short-term obligations and accelerating cash conversion."}[s]; }},
+
+  {key:"quickRatio", name:"Quick Ratio", category:"liquidity", unit:"x", formula:"(Current Assets − Inventory) ÷ Current Liabilities",
+   requiredKeys:["currentAssets","inventory","currentLiabilities"],
+   calculate:function(d){ return d.currentLiabilities===0?null:(d.currentAssets-d.inventory)/d.currentLiabilities; },
+   formulaCalc:function(d,cur){ return "("+fmt(d.currentAssets,cur)+" − "+fmt(d.inventory,cur)+") ÷ "+fmt(d.currentLiabilities,cur); },
+   status:function(v){ return v===null?null:(v>=1?"healthy":v>=0.7?"warning":"critical"); },
+   interpret:function(v){ return "Excluding inventory, the company holds "+formatNumber(v)+" of liquid assets for every ₹1 of current liabilities."; },
+   whyItMatters:"Quick Ratio strips out inventory, which can be slow or difficult to convert to cash, to give a stricter view of near-term liquidity.",
+   recommend:function(s){ return {healthy:"Liquid assets comfortably cover short-term obligations even without relying on inventory.", warning:"Liquidity excluding inventory is tight. Watch how quickly receivables and cash reserves can be mobilised if needed.", critical:"Without inventory, current assets fall well short of current liabilities. This points to a real near-term cash risk."}[s]; }},
+
+  {key:"cashRatio", name:"Cash Ratio", category:"liquidity", unit:"x", formula:"Cash & Cash Equivalents ÷ Current Liabilities",
+   requiredKeys:["cash","currentLiabilities"],
+   calculate:function(d){ return d.currentLiabilities===0?null:d.cash/d.currentLiabilities; },
+   formulaCalc:function(d,cur){ return fmt(d.cash,cur)+" ÷ "+fmt(d.currentLiabilities,cur); },
+   status:function(v){ return v===null?null:(v>=0.5?"healthy":v>=0.2?"warning":"critical"); },
+   interpret:function(v){ return "Cash on hand alone covers "+formatNumber(v)+" of every ₹1 in current liabilities."; },
+   whyItMatters:"Cash Ratio is the most conservative liquidity measure — what the company could pay immediately using cash alone.",
+   recommend:function(s){ return {healthy:"Cash reserves provide a strong immediate cushion against short-term obligations.", warning:"Cash cover is moderate. Maintain a cash buffer rather than relying solely on receivables or inventory conversion.", critical:"Cash on hand is low relative to current liabilities. Build a cash reserve and review payment timing with suppliers and lenders."}[s]; }},
+
+  {key:"debtToEquity", name:"Debt-to-Equity Ratio", category:"solvency", unit:"x", formula:"Total Debt ÷ Shareholders' Equity",
+   requiredKeys:["totalDebt","shareholdersEquity"],
+   calculate:function(d){ return d.shareholdersEquity===0?null:d.totalDebt/d.shareholdersEquity; },
+   formulaCalc:function(d,cur){ return fmt(d.totalDebt,cur)+" ÷ "+fmt(d.shareholdersEquity,cur); },
+   status:function(v){ return v===null?null:(v<=1?"healthy":v<=2?"warning":"critical"); },
+   interpret:function(v){ return "For every ₹1 of shareholders' equity, the company carries "+formatNumber(v)+" in total debt."; },
+   whyItMatters:"Debt-to-Equity shows how much of the business is financed by borrowing versus owners' capital — a core leverage indicator.",
+   recommend:function(s){ return {healthy:"Leverage is conservative. There is likely room to raise debt for growth if a good opportunity arises.", warning:"Debt is a meaningful part of the capital structure. Avoid adding further leverage until earnings comfortably cover interest.", critical:"Debt significantly exceeds shareholders' equity. Prioritise debt reduction or equity infusion to rebalance the capital structure."}[s]; }},
+
+  {key:"debtRatio", name:"Debt Ratio", category:"solvency", unit:"x", formula:"Total Debt ÷ Total Assets",
+   requiredKeys:["totalDebt","totalAssets"],
+   calculate:function(d){ return d.totalAssets===0?null:d.totalDebt/d.totalAssets; },
+   formulaCalc:function(d,cur){ return fmt(d.totalDebt,cur)+" ÷ "+fmt(d.totalAssets,cur); },
+   status:function(v){ return v===null?null:(v<=0.4?"healthy":v<=0.6?"warning":"critical"); },
+   interpret:function(v){ return "Debt finances "+formatPercent(v*100)+" of the company's total assets."; },
+   whyItMatters:"Debt Ratio shows what proportion of everything the company owns is funded by borrowing rather than equity.",
+   recommend:function(s){ return {healthy:"A modest share of assets is debt-funded, leaving a solid equity cushion.", warning:"A significant share of assets is debt-funded. Monitor asset quality and repayment schedules closely.", critical:"Most of the asset base is financed by debt. This raises solvency risk if earnings or asset values come under pressure."}[s]; }},
+
+  {key:"capitalGearing", name:"Capital Gearing Ratio", category:"solvency", unit:"x", formula:"Fixed Interest Bearing Securities ÷ Equity Shareholders' Funds",
+   requiredKeys:["fixedInterestBearingSecurities","shareholdersEquity"],
+   calculate:function(d){ return d.shareholdersEquity===0?null:d.fixedInterestBearingSecurities/d.shareholdersEquity; },
+   formulaCalc:function(d,cur){ return fmt(d.fixedInterestBearingSecurities,cur)+" ÷ "+fmt(d.shareholdersEquity,cur); },
+   status:function(v){ return v===null?null:(v<=1?"healthy":v<=2?"warning":"critical"); },
+   interpret:function(v){ return "Fixed-interest-bearing capital (long-term debt and preference capital) is "+formatNumber(v)+" times equity shareholders' funds."; },
+   whyItMatters:"Capital Gearing shows reliance on fixed-return capital (debt and preference shares) versus equity. High gearing amplifies both returns and risk for equity holders.",
+   recommend:function(s){ return {healthy:"The company is low-geared — equity holders bear most of the capital risk, which is generally more stable.", warning:"Gearing is moderate. Equity returns will be noticeably sensitive to swings in operating profit.", critical:"The company is high-geared. Small changes in operating profit will produce large swings in returns to equity holders — consider reducing fixed-interest capital."}[s]; }},
+
+  {key:"interestCoverage", name:"Interest Coverage Ratio", category:"solvency", unit:"x", formula:"EBIT ÷ Interest Expense",
+   requiredKeys:["ebit","interestExpense"],
+   calculate:function(d){ return d.interestExpense===0?null:d.ebit/d.interestExpense; },
+   formulaCalc:function(d,cur){ return fmt(d.ebit,cur)+" ÷ "+fmt(d.interestExpense,cur); },
+   status:function(v){ return v===null?null:(v>=4?"healthy":v>=1.5?"warning":"critical"); },
+   interpret:function(v){ return "Operating profit covers interest obligations "+formatNumber(v)+" times over."; },
+   whyItMatters:"Interest Coverage shows how comfortably operating earnings can pay the interest bill — a key early-warning signal for solvency stress.",
+   recommend:function(s){ return {healthy:"Interest obligations are comfortably covered by operating profit.", warning:"Coverage is tight. A downturn in operating profit could make interest payments difficult to service.", critical:"Operating profit barely covers, or does not cover, interest expense. This is a serious solvency warning sign."}[s]; }},
+
+  {key:"grossProfitRatio", name:"Gross Profit Ratio", category:"profitability", unit:"%", formula:"Gross Profit ÷ Revenue × 100",
+   requiredKeys:["grossProfit","revenue"],
+   calculate:function(d){ return d.revenue===0?null:(d.grossProfit/d.revenue)*100; },
+   formulaCalc:function(d,cur){ return fmt(d.grossProfit,cur)+" ÷ "+fmt(d.revenue,cur)+" × 100"; },
+   status:function(v){ return v===null?null:(v>=30?"healthy":v>=15?"warning":"critical"); },
+   interpret:function(v){ return "The company retains "+formatPercent(v)+" of revenue after direct production costs."; },
+   whyItMatters:"Gross Profit Ratio shows core production or trading efficiency, before overheads, interest, and tax.",
+   recommend:function(s){ return {healthy:"Core production/trading margin is strong. Protect it by locking in input costs where possible.", warning:"Gross margin is moderate. Review input costs, supplier terms, and pricing to protect this margin.", critical:"Gross margin is thin, leaving little room to absorb overheads. Reassess pricing and direct-cost structure urgently."}[s]; }},
+
+  {key:"operatingProfitRatio", name:"Operating Profit Ratio", category:"profitability", unit:"%", formula:"Operating Profit ÷ Revenue × 100",
+   requiredKeys:["operatingProfit","revenue"],
+   calculate:function(d){ return d.revenue===0?null:(d.operatingProfit/d.revenue)*100; },
+   formulaCalc:function(d,cur){ return fmt(d.operatingProfit,cur)+" ÷ "+fmt(d.revenue,cur)+" × 100"; },
+   status:function(v){ return v===null?null:(v>=15?"healthy":v>=5?"warning":"critical"); },
+   interpret:function(v){ return formatPercent(v)+" of revenue remains as operating profit after operating expenses."; },
+   whyItMatters:"Operating Profit Ratio shows how efficiently the core business runs, including overheads, before interest and tax.",
+   recommend:function(s){ return {healthy:"Operating efficiency is strong, with healthy profit left after running costs.", warning:"Operating expenses are taking a large bite out of margin. Review administrative and operating costs for savings.", critical:"Operating expenses are eroding most or all of the gross margin. Renegotiate major cost contracts and cut non-essential spend."}[s]; }},
+
+  {key:"netProfitRatio", name:"Net Profit Ratio", category:"profitability", unit:"%", formula:"Net Profit ÷ Revenue × 100",
+   requiredKeys:["netProfit","revenue"],
+   calculate:function(d){ return d.revenue===0?null:(d.netProfit/d.revenue)*100; },
+   formulaCalc:function(d,cur){ return fmt(d.netProfit,cur)+" ÷ "+fmt(d.revenue,cur)+" × 100"; },
+   status:function(v){ return v===null?null:(v>=10?"healthy":v>=3?"warning":"critical"); },
+   interpret:function(v){ return formatPercent(v)+" of every rupee of revenue converts to bottom-line profit."; },
+   whyItMatters:"Net Profit Ratio is the final scorecard — what's actually left for shareholders after every cost, including interest and tax.",
+   recommend:function(s){ return {healthy:"Bottom-line profitability is healthy relative to revenue.", warning:"Net margin is modest. Look across COGS, operating costs, and interest expense together to find where margin is leaking.", critical:"Net margin is very thin or negative. A full cost review across the P&L is warranted before this becomes a cash issue."}[s]; }},
+
+  {key:"roe", name:"Return on Equity (ROE)", category:"profitability", unit:"%", formula:"Net Profit ÷ Shareholders' Equity × 100",
+   requiredKeys:["netProfit","shareholdersEquity"],
+   calculate:function(d){ return d.shareholdersEquity===0?null:(d.netProfit/d.shareholdersEquity)*100; },
+   formulaCalc:function(d,cur){ return fmt(d.netProfit,cur)+" ÷ "+fmt(d.shareholdersEquity,cur)+" × 100"; },
+   status:function(v){ return v===null?null:(v>=15?"healthy":v>=8?"warning":"critical"); },
+   interpret:function(v){ return "Shareholders are earning "+formatPercent(v)+" on their equity investment for the period."; },
+   whyItMatters:"ROE measures how effectively shareholders' capital is being used to generate profit. Uses closing equity rather than average equity, since only a single period's figures were provided.",
+   recommend:function(s){ return {healthy:"Returns to shareholders are strong relative to the equity invested.", warning:"Returns to equity are moderate. Consider whether profitability or capital efficiency can be improved.", critical:"Returns to shareholders are weak. Examine both profit margins and how efficiently equity capital is being deployed."}[s]; }},
+
+  {key:"roa", name:"Return on Assets (ROA)", category:"profitability", unit:"%", formula:"Net Profit ÷ Total Assets × 100",
+   requiredKeys:["netProfit","totalAssets"],
+   calculate:function(d){ return d.totalAssets===0?null:(d.netProfit/d.totalAssets)*100; },
+   formulaCalc:function(d,cur){ return fmt(d.netProfit,cur)+" ÷ "+fmt(d.totalAssets,cur)+" × 100"; },
+   status:function(v){ return v===null?null:(v>=8?"healthy":v>=3?"warning":"critical"); },
+   interpret:function(v){ return "Every ₹100 of assets generates "+formatNumber(v)+" in net profit."; },
+   whyItMatters:"ROA measures how efficiently the company's total asset base is being used to generate profit, regardless of how it is financed. Uses closing total assets rather than average assets.",
+   recommend:function(s){ return {healthy:"Assets are being deployed efficiently to generate profit.", warning:"Asset utilisation is moderate. Review underused assets or slow-moving inventory that ties up capital without generating returns.", critical:"Return on assets is weak. Investigate whether assets are underutilised, idle, or overvalued relative to what they generate."}[s]; }},
+
+  {key:"inventoryTurnover", name:"Inventory Turnover Ratio", category:"efficiency", unit:"x", formula:"COGS ÷ Inventory",
+   requiredKeys:["cogs","inventory"],
+   calculate:function(d){ return (d.inventory===0||d.inventory===null)?null:d.cogs/d.inventory; },
+   formulaCalc:function(d,cur){ return fmt(d.cogs,cur)+" ÷ "+fmt(d.inventory,cur); },
+   status:function(v){ return v===null?null:(v>=6?"healthy":v>=3?"warning":"critical"); },
+   interpret:function(v){ return "Inventory is sold and replaced approximately "+formatNumber(v)+" times per year."; },
+   whyItMatters:"Inventory Turnover shows how efficiently stock is being converted into sales. Low turnover can signal excess or slow-moving inventory.",
+   recommend:function(s){ return {healthy:"Inventory is moving efficiently through the business.", warning:"Inventory turnover is moderate. Review slow-moving stock categories and reorder quantities.", critical:"Inventory is turning over slowly, tying up cash. Reassess purchasing volumes, obsolete stock, and demand forecasting."}[s]; }},
+
+  {key:"receivablesTurnover", name:"Receivables Turnover Ratio", category:"efficiency", unit:"x", formula:"Revenue ÷ Accounts Receivable",
+   requiredKeys:["revenue","receivables"],
+   calculate:function(d){ return (d.receivables===0||d.receivables===null)?null:d.revenue/d.receivables; },
+   formulaCalc:function(d,cur){ return fmt(d.revenue,cur)+" ÷ "+fmt(d.receivables,cur); },
+   status:function(v){ return v===null?null:(v>=8?"healthy":v>=4?"warning":"critical"); },
+   interpret:function(v){ return "Receivables are collected roughly "+formatNumber(v)+" times per year (about "+formatNumber(365/v,0)+" days on average)."; },
+   whyItMatters:"Receivables Turnover shows how quickly the company collects cash from customers after a sale.",
+   recommend:function(s){ return {healthy:"Customer collections are efficient, keeping cash flowing back into the business quickly.", warning:"Collection cycles are moderate. Tighten credit terms or follow up on ageing invoices sooner.", critical:"Cash is tied up in slow-paying customers. Review credit policy, follow-up processes, and customer concentration."}[s]; }},
+
+  {key:"payablesTurnover", name:"Payables Turnover Ratio", category:"efficiency", unit:"x", formula:"COGS ÷ Accounts Payable",
+   requiredKeys:["cogs","payables"],
+   calculate:function(d){ return (d.payables===0||d.payables===null)?null:d.cogs/d.payables; },
+   formulaCalc:function(d,cur){ return fmt(d.cogs,cur)+" ÷ "+fmt(d.payables,cur); },
+   status:function(v){ return v===null?null:((v>=4&&v<=12)?"healthy":(v>12||v<2)?"critical":"warning"); },
+   interpret:function(v){ return "Supplier payables turn over about "+formatNumber(v)+" times per year (about "+formatNumber(365/v,0)+" days on average)."; },
+   whyItMatters:"Payables Turnover shows how quickly the company pays its suppliers. Very fast payment may forgo useful credit; very slow payment can strain supplier relationships.",
+   recommend:function(s){ return {healthy:"Supplier payment timing looks balanced — using available credit without straining relationships.", warning:"Payment timing is a little outside the typical range. Review whether this reflects strategy or a cash constraint.", critical:"Payment timing is at an extreme — either very slow (possible supplier strain) or very fast (possible under-use of available credit terms). Review supplier terms and cash planning."}[s]; }},
+
+  {key:"assetTurnover", name:"Asset Turnover Ratio", category:"efficiency", unit:"x", formula:"Revenue ÷ Total Assets",
+   requiredKeys:["revenue","totalAssets"],
+   calculate:function(d){ return d.totalAssets===0?null:d.revenue/d.totalAssets; },
+   formulaCalc:function(d,cur){ return fmt(d.revenue,cur)+" ÷ "+fmt(d.totalAssets,cur); },
+   status:function(v){ return v===null?null:(v>=1?"healthy":v>=0.5?"warning":"critical"); },
+   interpret:function(v){ return "Every ₹1 of assets generates "+formatNumber(v)+" in revenue."; },
+   whyItMatters:"Asset Turnover measures how efficiently the entire asset base is used to generate sales.",
+   recommend:function(s){ return {healthy:"Assets are generating strong sales relative to their size.", warning:"Asset efficiency is moderate. Look for underutilised property, plant, or equipment.", critical:"Revenue generated per unit of assets is low. Investigate idle capacity or overinvestment in assets relative to sales."}[s]; }},
+
+  {key:"workingCapitalTurnover", name:"Working Capital Turnover Ratio", category:"efficiency", unit:"x", formula:"Revenue ÷ (Current Assets − Current Liabilities)",
+   requiredKeys:["revenue","currentAssets","currentLiabilities"],
+   calculate:function(d){ var wc=d.currentAssets-d.currentLiabilities; if(wc===0) return null; return d.revenue/wc; },
+   formulaCalc:function(d,cur){ return fmt(d.revenue,cur)+" ÷ ("+fmt(d.currentAssets,cur)+" − "+fmt(d.currentLiabilities,cur)+")"; },
+   status:function(v){ return v===null?null:((v>0&&v<=8)?"healthy":(v<0)?"critical":"warning"); },
+   interpret:function(v){ return v<0 ? "Working capital is negative, so this ratio is not meaningful in the usual sense." : "Every ₹1 of net working capital supports "+formatNumber(v)+" in revenue."; },
+   whyItMatters:"Working Capital Turnover shows how efficiently short-term operating capital is being used to generate sales.",
+   recommend:function(s){ return {healthy:"Working capital is being used efficiently to generate revenue.", warning:"Working capital efficiency is very high or low relative to typical ranges — confirm whether this is by design.", critical:"Negative working capital means current liabilities exceed current assets. This needs attention alongside the liquidity ratios above."}[s]; }}
+];
+
+function evaluateRatios(derived, currency){
+  return RATIOS.map(function(r){
+    var isAvailable = available(derived, r.requiredKeys);
+    if(!isAvailable){
+      var missing = r.requiredKeys.filter(function(k){ return derived[k]===null || derived[k]===undefined; });
+      return Object.assign({}, r, {available:false, missing:missing, value:null, status:null});
+    }
+    var value = r.calculate(derived);
+    if(value===null || isNaN(value) || !isFinite(value)){
+      return Object.assign({}, r, {available:false, missing:[], zeroDenominator:true, value:null, status:null});
+    }
+    var status = r.status(value);
+    return Object.assign({}, r, {
+      available:true, value:value, status:status,
+      formattedValue: r.unit==="%" ? formatPercent(value) : (formatNumber(value)+(r.unit==="x"?" : 1":"")),
+      interpretation: r.interpret(value, derived, currency),
+      calculationDisplay: r.formulaCalc(derived, currency),
+      recommendation: r.recommend(status)
+    });
+  });
+}
+
+/* ============================ DIAGNOSTICS ============================ */
+function byKey(results){ var m={}; results.forEach(function(r){ m[r.key]=r; }); return m; }
+
+function runCrossRatioDiagnostics(results){
+  var r = byKey(results), findings=[];
+  function ok(){ return Array.prototype.slice.call(arguments).every(function(k){ return r[k] && r[k].available; }); }
+
+  if(ok("currentRatio","quickRatio") && r.currentRatio.status!=="critical" && (r.quickRatio.status==="warning"||r.quickRatio.status==="critical")){
+    findings.push({title:"Inventory-Driven Liquidity Risk", severity:"warning",
+      explanation:"Although the current ratio appears reasonable, a significant portion of current assets may be tied up in inventory rather than cash or receivables.",
+      recommendation:"Review inventory turnover, reduce excess stock, and improve inventory planning to free up liquidity."});
+  }
+  if(ok("debtToEquity","interestCoverage") && (r.debtToEquity.status==="warning"||r.debtToEquity.status==="critical") && (r.interestCoverage.status==="warning"||r.interestCoverage.status==="critical")){
+    findings.push({title:"High Financial Leverage Risk", severity:(r.debtToEquity.status==="critical"||r.interestCoverage.status==="critical")?"critical":"warning",
+      explanation:"Debt levels are high relative to equity, and operating profit provides limited cushion over interest obligations. This combination raises the risk of financial distress if earnings soften.",
+      recommendation:"Prioritise debt reduction or improved profitability before taking on further borrowing. Consider renegotiating loan terms if coverage is tight."});
+  }
+  if(ok("netProfitRatio","grossProfitRatio") && r.grossProfitRatio.status==="healthy" && (r.netProfitRatio.status==="warning"||r.netProfitRatio.status==="critical")){
+    findings.push({title:"Margin Pressure Below the Gross Line", severity:"warning",
+      explanation:"Gross margin is healthy, but a large share of that margin is being consumed by operating expenses, interest, or tax before it reaches the bottom line.",
+      recommendation:"Break down operating expenses and interest costs individually — the erosion is happening after production costs, not within them."});
+  }
+  if(ok("currentRatio","receivablesTurnover") && r.currentRatio.status==="healthy" && (r.receivablesTurnover.status==="warning"||r.receivablesTurnover.status==="critical")){
+    findings.push({title:"Receivables Risk Behind a Healthy Current Ratio", severity:"warning",
+      explanation:"The current ratio looks healthy, but customer collections are slow. A large share of current assets may be receivables that are difficult to convert to cash quickly.",
+      recommendation:"Tighten credit terms, follow up on ageing invoices, and consider whether customer concentration is creating collection risk."});
+  }
+  if(ok("debtRatio","roa") && r.debtRatio.status!=="healthy" && r.roa.status==="critical"){
+    findings.push({title:"Asset Base Under Strain", severity:"critical",
+      explanation:"A large share of the asset base is debt-funded, while those same assets are generating weak returns. This combination compounds solvency risk over time.",
+      recommendation:"Focus on improving asset productivity before adding further leverage — evaluate underperforming or idle assets."});
+  }
+  if(ok("currentRatio","assetTurnover") && r.currentRatio.status==="healthy" && r.assetTurnover.status==="critical"){
+    findings.push({title:"Capital Efficiency Gap", severity:"warning",
+      explanation:"Liquidity is not the concern here — assets are simply not generating proportionate revenue, which can quietly erode returns over time.",
+      recommendation:"Review whether the asset base is oversized for current revenue, or whether underused capacity can be redeployed or divested."});
+  }
+  if(ok("payablesTurnover","currentRatio") && r.payablesTurnover.status==="critical" && r.currentRatio.status!=="healthy"){
+    findings.push({title:"Supplier Payment Strain", severity:"warning",
+      explanation:"Payables are turning over unusually slowly at the same time as overall liquidity is under pressure — a combination that risks damaging supplier relationships and terms.",
+      recommendation:"Prioritise supplier payment plans and communicate proactively with key vendors while liquidity is being rebuilt."});
+  }
+  return findings;
+}
+
+var CATEGORY_WEIGHTS = {liquidity:0.25, solvency:0.25, profitability:0.30, efficiency:0.20};
+var STATUS_SCORE = {healthy:100, warning:60, critical:20};
+
+function computeHealthScore(results){
+  var categories=["liquidity","solvency","profitability","efficiency"], breakdown={}, weightedSum=0, weightUsed=0;
+  categories.forEach(function(cat){
+    var catResults = results.filter(function(r){ return r.category===cat && r.available; });
+    if(catResults.length===0){ breakdown[cat]={score:null, label:CATEGORY_LABELS[cat], ratiosUsed:0}; return; }
+    var avg = catResults.reduce(function(sum,r){ return sum+STATUS_SCORE[r.status]; },0)/catResults.length;
+    breakdown[cat] = {score:Math.round(avg), label:CATEGORY_LABELS[cat], ratiosUsed:catResults.length};
+    weightedSum += avg*CATEGORY_WEIGHTS[cat]; weightUsed += CATEGORY_WEIGHTS[cat];
+  });
+  var overall = weightUsed>0 ? Math.round(weightedSum/weightUsed) : null;
+  return {overall:overall, breakdown:breakdown};
+}
+function computeCoverage(results){
+  var total = results.length, evaluated = results.filter(function(r){ return r.available; }).length;
+  return {total:total, evaluated:evaluated, percent: total>0?Math.round((evaluated/total)*100):0};
+}
+function buildFinalDiagnosis(results, score, findings){
+  var avail = results.filter(function(r){ return r.available; });
+  var healthy = avail.filter(function(r){ return r.status==="healthy"; });
+  var warning = avail.filter(function(r){ return r.status==="warning"; });
+  var critical = avail.filter(function(r){ return r.status==="critical"; });
+  var headline;
+  if(score.overall===null) headline="INSUFFICIENT DATA FOR A FULL DIAGNOSIS";
+  else if(score.overall>=80) headline = critical.length>0 ? "STRONG OVERALL — BUT ADDRESS ISOLATED RISK AREAS" : "FINANCIALLY STRONG";
+  else if(score.overall>=60) headline = findings.some(function(f){ return f.severity==="critical"; }) ? "FINANCIALLY STABLE — BUT WATCH LEVERAGE" : "FINANCIALLY STABLE — SOME AREAS NEED ATTENTION";
+  else if(score.overall>=40) headline = "FINANCIAL PRESSURE VISIBLE ACROSS MULTIPLE AREAS";
+  else headline = "SIGNIFICANT FINANCIAL STRAIN";
+  return {
+    headline:headline,
+    strengths: healthy.map(function(r){ return r.name+": "+r.interpretation; }),
+    weaknesses: critical.map(function(r){ return r.name+": "+r.interpretation; }),
+    watchAreas: warning.map(function(r){ return r.name+": "+r.interpretation; }),
+    crossFindings: findings
+  };
+}
+function buildActionPlan(results, findings){
+  var avail = results.filter(function(r){ return r.available; });
+  var critical = avail.filter(function(r){ return r.status==="critical"; });
+  var warning = avail.filter(function(r){ return r.status==="warning"; });
+  var criticalFindings = findings.filter(function(f){ return f.severity==="critical"; });
+  var warningFindings = findings.filter(function(f){ return f.severity==="warning"; });
+  var high = criticalFindings.map(function(f){ return {problem:f.title, why:f.explanation, action:f.recommendation}; })
+    .concat(critical.map(function(r){ return {problem:r.name+" is in critical territory ("+r.formattedValue+")", why:r.whyItMatters, action:r.recommendation}; }));
+  var medium = warningFindings.map(function(f){ return {problem:f.title, why:f.explanation, action:f.recommendation}; })
+    .concat(warning.map(function(r){ return {problem:r.name+" needs attention ("+r.formattedValue+")", why:r.whyItMatters, action:r.recommendation}; }));
+  var low = avail.filter(function(r){ return r.status==="healthy"; }).slice(0,3).map(function(r){
+    return {problem:r.name+" is currently healthy ("+r.formattedValue+")", why:r.whyItMatters, action:"Maintain current practices. "+r.recommendation};
+  });
+  return {high:high, medium:medium, low:low};
+}
+
+/* ============================ STATE ============================ */
+var state = {screen:"landing", company:{companyName:"",industry:"",financialYear:"",currency:"INR"}, income:{}, balance:{}, results:null};
+function resetAnalysis(){ state.screen="landing"; state.company={companyName:"",industry:"",financialYear:"",currency:"INR"}; state.income={}; state.balance={}; state.results=null; }
+
+var STEP_TITLES = ["Company Information","Profitability Inputs","Financial Position","Review Entered Data"];
+var TOTAL_STEPS = 4;
+var stepIndex = 1;
+
+/* ============================ UI RENDER ============================ */
+function progressBar(step){
+  var pct = Math.round((step/TOTAL_STEPS)*100);
+  return '<div class="progress-wrap"><div class="progress-label"><span>STEP '+step+' OF '+TOTAL_STEPS+'</span><span>'+STEP_TITLES[step-1]+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>';
+}
+function numberField(field, value, currencySymbol){
+  var val = value==null?"":value;
+  return '<div class="field"><div class="field-label-row"><label class="field-label" for="f_'+field.key+'">'+esc(field.label)+'</label><span class="field-badge '+(field.required?"required":"optional")+'">'+(field.required?"★ Required":"Optional")+'</span></div>'
+    +'<div class="field-input-wrap"><span class="field-currency-prefix">'+currencySymbol+'</span><input type="text" inputmode="decimal" id="f_'+field.key+'" name="'+field.key+'" class="currency" value="'+esc(val)+'" placeholder="0.00" autocomplete="off" /></div>'
+    +(field.help?'<div class="field-help">'+esc(field.help)+'</div>':'')
+    +'<div class="field-error" id="err_'+field.key+'"></div></div>';
+}
+/* Generic dark-themed custom dropdown markup. options = [{value,label}], triggerId/panelId are the DOM ids. */
+function renderCustomSelect(triggerId, options, selectedValue, placeholder){
+  var selectedOpt = options.filter(function(o){ return o.value===selectedValue; })[0];
+  var labelHtml = selectedOpt ? esc(selectedOpt.label) : '<span class="cs-placeholder">'+esc(placeholder)+'</span>';
+  var optionsHtml = options.map(function(o){
+    return '<div class="cs-option'+(o.value===selectedValue?' selected':'')+'" data-target="'+triggerId+'" data-value="'+esc(o.value)+'" data-label="'+esc(o.label)+'">'+esc(o.label)+'</div>';
+  }).join("");
+  return '<div class="cs-wrap">'
+    + '<button type="button" class="cs-trigger" id="'+triggerId+'" data-value="'+esc(selectedValue||"")+'" aria-haspopup="listbox">'
+    + '<span class="cs-trigger-text">'+labelHtml+'</span>'
+    + '<svg class="cs-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>'
+    + '</button>'
+    + '<div class="cs-panel" id="panel_'+triggerId+'" role="listbox">'+optionsHtml+'</div>'
+    + '</div>';
+}
+function textOrSelectField(field, value){
+  if(field.type==="select"){
+    var options = field.key==="industry"
+      ? INDUSTRIES.map(function(i){ return {value:i, label:i}; })
+      : Object.keys(CURRENCIES).map(function(code){ return {value:code, label:CURRENCIES[code].label}; });
+    return '<div class="field"><div class="field-label-row"><label class="field-label">'+esc(field.label)+'</label><span class="field-badge required">★ Required</span></div>'
+      + renderCustomSelect("f_"+field.key, options, value, "Select…")
+      + '<div class="field-error" id="err_'+field.key+'"></div></div>';
+  }
+  return '<div class="field"><div class="field-label-row"><label class="field-label" for="f_'+field.key+'">'+esc(field.label)+'</label><span class="field-badge required">★ Required</span></div>'
+    +'<input type="text" id="f_'+field.key+'" name="'+field.key+'" value="'+esc(value==null?"":value)+'" placeholder="'+esc(field.placeholder||"")+'" autocomplete="off" />'
+    +'<div class="field-error" id="err_'+field.key+'"></div></div>';
+}
+function renderCompanyStep(){
+  var v = state.company;
+  return progressBar(1)+'<div class="form-card"><h2>Company Information</h2><p class="form-sub">Let\'s start with the basics — this helps frame everything that follows.</p>'
+    + COMPANY_FIELDS.map(function(f){ return textOrSelectField(f, v[f.key]); }).join("")
+    + '<div class="form-actions"><button class="btn btn-ghost" data-action="back-landing">← Back</button><button class="btn btn-primary" data-action="next-step">Continue →</button></div></div>';
+}
+function renderIncomeStep(){
+  var v = state.income, cur = (CURRENCIES[state.company.currency]||{}).symbol||"₹";
+  return progressBar(2)+'<div class="form-card"><h2>Profitability Inputs</h2><p class="form-sub">Let\'s understand how the company generates revenue and profit.</p>'
+    + INCOME_FIELDS.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
+    + '<div class="form-actions"><button class="btn btn-ghost" data-action="prev-step">← Back</button><button class="btn btn-primary" data-action="next-step">Continue →</button></div></div>'
+    + '<div class="snapshot-panel" id="liveSnapshot"></div>';
+}
+function renderBalanceStep(){
+  var v = state.balance, cur = (CURRENCIES[state.company.currency]||{}).symbol||"₹";
+  return progressBar(3)+'<div class="form-card"><h2>Financial Position</h2><p class="form-sub">Let\'s understand the company\'s liquidity, assets, and obligations.</p>'
+    + '<div class="field-group-title">Current Assets</div>' + BALANCE_FIELDS.currentAssets.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
+    + '<div class="field-group-title">Non-Current Assets</div>' + BALANCE_FIELDS.nonCurrentAssets.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
+    + '<div class="field-group-title">Current Liabilities</div>' + BALANCE_FIELDS.currentLiabilities.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
+    + '<div class="field-group-title">Long-Term Financing</div>' + BALANCE_FIELDS.longTermFinancing.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
+    + '<div class="form-actions"><button class="btn btn-ghost" data-action="prev-step">← Back</button><button class="btn btn-primary" data-action="next-step">Continue →</button></div></div>'
+    + '<div class="snapshot-panel" id="liveSnapshot"></div>';
+}
+function renderLiveSnapshot(){
+  var derived = deriveFinancials(state.income, state.balance), cur = state.company.currency;
+  var items = [["Revenue",derived.revenue],["Gross Profit",derived.grossProfit],["Operating Profit",derived.operatingProfit],["Total Debt",derived.totalDebt],["Equity",derived.shareholdersEquity]].filter(function(p){ return p[1]!==null; });
+  if(items.length===0) return "";
+  return '<div class="snapshot-title">Live Financial Snapshot</div><div class="snapshot-grid">'
+    + items.map(function(p){ return '<div class="snapshot-item"><div class="label">'+p[0]+'</div><div class="value">'+formatCurrency(p[1],cur)+'</div></div>'; }).join("")
+    + '</div>';
+}
+function reviewRow(label, value, cur){
+  var display = (value===null||value===undefined||value==="") ? '<span class="rvalue empty">Not provided</span>' : ('<span class="rvalue">'+(typeof value==="number"?formatCurrency(value,cur):esc(value))+'</span>');
+  return '<div class="review-row"><span class="rlabel">'+esc(label)+'</span>'+display+'</div>';
+}
+function renderReviewStep(){
+  var cur = state.company.currency;
+  var allBalance = [].concat(BALANCE_FIELDS.currentAssets, BALANCE_FIELDS.nonCurrentAssets, BALANCE_FIELDS.currentLiabilities, BALANCE_FIELDS.longTermFinancing);
+  return progressBar(4)+'<div class="form-card"><h2>Review Entered Data</h2><p class="form-sub">Check everything looks right before VR FinSight runs the analysis.</p>'
+    + '<div class="review-section"><h4>Company</h4>'+reviewRow("Company Name", state.company.companyName)+reviewRow("Industry", state.company.industry)+reviewRow("Financial Year", state.company.financialYear)+reviewRow("Currency", (CURRENCIES[cur]||{}).label||cur)+'</div>'
+    + '<div class="review-section"><h4>Profitability Inputs</h4>'+INCOME_FIELDS.map(function(f){ return reviewRow(f.label, state.income[f.key], cur); }).join("")+'</div>'
+    + '<div class="review-section"><h4>Financial Position</h4>'+allBalance.map(function(f){ return reviewRow(f.label, state.balance[f.key], cur); }).join("")+'</div>'
+    + '<div class="form-actions"><button class="btn btn-ghost" data-action="prev-step">← Back</button><button class="btn btn-primary" data-action="analyze">ANALYZE COMPANY →</button></div></div>';
+}
+
+function statusColorVar(status){ return {healthy:"var(--healthy)", warning:"var(--warning)", critical:"var(--critical)"}[status] || "var(--ink-faint)"; }
+function coverageRing(percent){
+  var r=28, c=2*Math.PI*r, offset=c-(percent/100)*c;
+  return '<div class="coverage-ring"><svg width="70" height="70" viewBox="0 0 68 68"><circle cx="34" cy="34" r="'+r+'" stroke="var(--border)" stroke-width="6" fill="none"/><circle cx="34" cy="34" r="'+r+'" stroke="url(#ringGrad)" stroke-width="6" fill="none" stroke-dasharray="'+c+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c4dff"/><stop offset="1" stop-color="#00e5ff"/></linearGradient></defs></svg><div class="pct">'+percent+'%</div></div>';
+}
+var INCOME_DERIVED_KEYS = {revenue:1,cogs:1,operatingExpenses:1,interestExpense:1,taxExpense:1,grossProfit:1,operatingProfit:1,ebit:1,profitBeforeTax:1,netProfit:1};
+function ratioCard(r){
+  if(!r.available){
+    var missingLabel = (r.missing && r.missing.length) ? "the required underlying figures" : "a required value (denominator was zero)";
+    var targetsIncome = (r.missing||[]).some(function(k){ return INCOME_DERIVED_KEYS[k]; });
+    var targetAction = targetsIncome ? "goto-income" : "goto-balance";
+    return '<div class="ratio-card status-unavailable"><div class="ratio-card-head"><span class="ratio-name">'+r.name+'</span><span class="status-badge unavailable">Data unavailable</span></div>'
+      + '<p class="ratio-unavailable-msg">This ratio could not be calculated accurately because '+missingLabel+' '+((r.missing&&r.missing.length)?"were":"was")+' not provided.</p>'
+      + '<button class="btn btn-ghost btn-sm add-missing-btn" data-action="'+targetAction+'">+ Add Missing Information</button></div>';
+  }
+  var statusIcon = r.status==="healthy"?"🟢 Healthy":r.status==="warning"?"🟡 Warning":"🔴 Critical";
+  return '<div class="ratio-card status-'+r.status+'" data-ratio="'+r.key+'"><div class="ratio-card-head"><span class="ratio-name">'+r.name+'</span><span class="status-badge '+r.status+'">'+statusIcon+'</span></div>'
+    + '<div class="ratio-value" style="color:'+statusColorVar(r.status)+'">'+r.formattedValue+'</div>'
+    + '<p class="ratio-interpretation">'+r.interpretation+'</p>'
+    + '<div class="ratio-actions"><button class="ratio-toggle" data-toggle="formula-'+r.key+'">See Formula</button><button class="ratio-toggle" data-toggle="why-'+r.key+'">Why It Matters</button><button class="ratio-toggle" data-toggle="improve-'+r.key+'">How To Improve</button></div>'
+    + '<div class="ratio-panel" id="formula-'+r.key+'"><div class="panel-label">Formula</div><div class="panel-formula">'+r.name+' = '+r.formula+'</div><div class="panel-label">Your Calculation</div><div class="panel-calc">'+r.calculationDisplay+' = '+r.formattedValue+'</div></div>'
+    + '<div class="ratio-panel" id="why-'+r.key+'"><p>'+r.whyItMatters+'</p></div>'
+    + '<div class="ratio-panel" id="improve-'+r.key+'"><p>'+r.recommendation+'</p></div></div>';
+}
+function renderPriorityBlock(label, level, items){
+  if(!items.length) return "";
+  return '<div class="priority-block"><div class="priority-head"><span class="priority-tag '+level+'">'+label+'</span></div>'
+    + items.map(function(it){ return '<div class="action-card"><div class="problem">'+esc(it.problem)+'</div><div class="why">'+esc(it.why)+'</div><div class="action"><b>Action:</b> '+esc(it.action)+'</div></div>'; }).join("")
+    + '</div>';
+}
+function renderResults(){
+  var cur = state.company.currency;
+  var derived = deriveFinancials(state.income, state.balance);
+  var results = evaluateRatios(derived, cur);
+  var findings = runCrossRatioDiagnostics(results);
+  var score = computeHealthScore(results);
+  var coverage = computeCoverage(results);
+  var diagnosis = buildFinalDiagnosis(results, score, findings);
+  var plan = buildActionPlan(results, findings);
+  state.results = {derived:derived, results:results, findings:findings, score:score, coverage:coverage, diagnosis:diagnosis, plan:plan};
+
+  var categories = ["liquidity","solvency","profitability","efficiency"];
+  var categorySections = categories.map(function(cat){
+    var catResults = results.filter(function(r){ return r.category===cat; });
+    var catScore = score.breakdown[cat];
+    return '<div class="category-section"><div class="category-header"><h3>'+CATEGORY_LABELS[cat]+'</h3><span class="cat-meta">'+catScore.ratiosUsed+' of '+catResults.length+' indicators evaluated'+(catScore.score!==null?(' · Score '+catScore.score+'/100'):'')+'</span></div>'
+      + '<div class="ratio-grid">'+catResults.map(ratioCard).join("")+'</div></div>';
+  }).join("");
+
+  var scoreVerdict = score.overall===null?null:(score.overall>=80?"healthy":score.overall>=55?"warning":"critical");
+
+  var html = '<div class="results-hero"><div class="coverage-banner">'+coverageRing(coverage.percent)
+    + '<div class="coverage-text"><div class="title">Analysis Coverage</div><div class="desc">Based on the information provided, VR FinSight was able to evaluate '+coverage.evaluated+' of '+coverage.total+' financial indicators.</div></div></div>'
+    + '<div class="score-hero"><div class="score-card-main"><span class="score-label">Financial Health Score</span>'
+    + '<div class="score-big" style="color:'+(scoreVerdict?statusColorVar(scoreVerdict):"var(--ink-faint)")+'">'+(score.overall!==null?score.overall:"—")+'<span class="score-max">/100</span></div>'
+    + (scoreVerdict?('<span class="score-verdict-chip status-badge '+scoreVerdict+'">'+(scoreVerdict==="healthy"?"Healthy":scoreVerdict==="warning"?"Needs Attention":"Critical")+'</span>'):'')
+    + '<a class="methodology-link" data-toggle="methodology-panel">How is this score calculated?</a>'
+    + '<div class="ratio-panel" id="methodology-panel" style="text-align:left; width:100%;"><p>Each category score is the average of its available ratios\' status (Healthy = 100, Warning = 60, Critical = 20). The overall score weights Profitability 30%, Liquidity 25%, Solvency 25%, and Efficiency 20%, using only categories with at least one calculable ratio. This is an analytical guideline, not an official credit rating.</p></div>'
+    + '</div><div class="category-breakdown">'
+    + categories.map(function(cat){
+        var c = score.breakdown[cat];
+        var cs = c.score===null?null:(c.score>=80?"healthy":c.score>=55?"warning":"critical");
+        return '<div class="category-score-card"><div class="cname">'+c.label+'</div><div class="cvalue" style="color:'+(cs?statusColorVar(cs):"var(--ink-faint)")+'">'+(c.score!==null?c.score:"—")+'</div>'
+          + '<div class="mini-bar-track"><div class="mini-bar-fill" style="width:'+(c.score||0)+'%; background:'+(cs?statusColorVar(cs):"var(--border)")+'"></div></div></div>';
+      }).join("")
+    + '</div></div></div>'
+    + '<div class="container" style="padding:0; margin-bottom:0;">'
+    + categorySections
+    + '<div class="diagnosis-block"><span class="diagnosis-eyebrow">VR Financial Insight — What the numbers are telling you</span><h2 class="diagnosis-headline">'+diagnosis.headline+'</h2>'
+    + '<div class="diagnosis-cols"><div class="diagnosis-col"><h4>🟢 What\'s Going Well</h4>'+(diagnosis.strengths.length?('<ul>'+diagnosis.strengths.slice(0,6).map(function(s){ return '<li>'+esc(s)+'</li>'; }).join("")+'</ul>'):'<p class="diagnosis-empty">No indicators currently in the healthy range.</p>')+'</div>'
+    + '<div class="diagnosis-col"><h4>🟡 Areas That Need Attention</h4>'+(diagnosis.watchAreas.length?('<ul>'+diagnosis.watchAreas.slice(0,6).map(function(s){ return '<li>'+esc(s)+'</li>'; }).join("")+'</ul>'):'<p class="diagnosis-empty">No indicators currently flagged for warning.</p>')+'</div>'
+    + '<div class="diagnosis-col"><h4>🔴 Where the Company Is Struggling</h4>'+(diagnosis.weaknesses.length?('<ul>'+diagnosis.weaknesses.slice(0,6).map(function(s){ return '<li>'+esc(s)+'</li>'; }).join("")+'</ul>'):'<p class="diagnosis-empty">No indicators currently in critical territory.</p>')+'</div></div>'
+    + (findings.length ? ('<div style="margin-top:32px; padding-top:28px; border-top:1px solid var(--border);"><h4 style="font-size:15px; margin-bottom:16px; font-family:var(--font-d);">Cross-Ratio Diagnosis</h4>'
+        + findings.map(function(f){ return '<div class="finding-card"><div class="fname" style="color:'+statusColorVar(f.severity)+'">'+(f.severity==="critical"?"🔴":"🟡")+' '+esc(f.title)+'</div><p>'+esc(f.explanation)+'</p><p class="frec">→ '+esc(f.recommendation)+'</p></div>'; }).join("")
+        + '</div>') : '')
+    + '</div>'
+    + '<div class="action-plan"><div class="section-head" style="margin-bottom:26px;"><span class="section-eyebrow">Next steps</span><h2>Recommended Actions</h2></div>'
+    + renderPriorityBlock("01 — High Priority","high",plan.high) + renderPriorityBlock("02 — Medium Priority","medium",plan.medium) + renderPriorityBlock("03 — Low Priority / Maintain","low",plan.low)
+    + '</div>'
+    + '<div class="results-footer-actions"><button class="btn btn-secondary" data-action="restart">↺ Reset Analysis</button><button class="btn btn-primary" data-action="open-connect">Have questions? Connect / Query →</button></div>'
+    + '</div>';
+  return html;
+}
+
+/* ============================ CONTACT MODAL ============================ */
+var QUERY_TYPES = ["General Query","Feedback","Collaboration","Finance Discussion","Business Enquiry","Job Opportunity","Other"];
+function connectModalMarkup(){
+  return '<div class="modal-overlay" id="connectModal" role="dialog" aria-modal="true" aria-labelledby="connectTitle"><div class="modal-box">'
+    + '<div id="connectFormWrap"><div class="modal-head"><div><h3 id="connectTitle">Connect / Query</h3><p>Questions, feedback, or a project you\'d like to discuss — send it over.</p></div><button class="modal-close" data-action="close-connect" aria-label="Close">✕</button></div>'
+    + '<form id="connectForm" novalidate action="https://formsubmit.co/vrgacharya@gmail.com" method="POST" target="formsubmitHiddenFrame">'
+    + '<input type="hidden" name="_subject" id="c_subject_hidden" value="VR FinSight — New Connect / Query submission" />'
+    + '<input type="hidden" name="_replyto" id="c_replyto_hidden" value="" />'
+    + '<input type="hidden" name="_template" value="table" />'
+    + '<input type="hidden" name="_captcha" value="false" />'
+    + '<input type="hidden" name="Query Type" id="c_type_hidden" value="General Query" />'
+    + '<div class="field"><div class="field-label-row"><label class="field-label" for="c_name">Name</label><span class="field-badge required">★ Required</span></div><input type="text" id="c_name" name="name" autocomplete="name" /><div class="field-error" id="err_c_name"></div></div>'
+    + '<div class="field"><div class="field-label-row"><label class="field-label" for="c_email">Email</label><span class="field-badge required">★ Required</span></div><input type="email" id="c_email" name="email" autocomplete="email" /><div class="field-error" id="err_c_email"></div></div>'
+    + '<div class="field"><div class="field-label-row"><label class="field-label">Query Type</label><span class="field-badge optional">Optional</span></div>'
+    + renderCustomSelect("c_type", QUERY_TYPES.map(function(t){ return {value:t, label:t}; }), "General Query", "Select…")
+    + '</div>'
+    + '<div class="field"><div class="field-label-row"><label class="field-label" for="c_message">Message</label><span class="field-badge required">★ Required</span></div><textarea id="c_message" name="message" rows="4"></textarea><div class="field-error" id="err_c_message"></div></div>'
+    + '<button type="submit" class="btn btn-primary btn-block" id="connectSubmitBtn">SEND MESSAGE →</button></form></div>'
+    + '<div class="modal-success hidden" id="connectSuccess"><div class="icon">✓</div><h3>Message Sent Successfully</h3><p>Thanks for reaching out. Your message has been emailed and you should hear back soon.</p><button class="btn btn-secondary" style="margin-top:20px;" data-action="close-connect">Close</button></div>'
+    + '</div></div>';
+}
+
+/* ============================ APP WIRING ============================ */
+var appScreen = document.getElementById("screen-app");
+var landingScreen = document.getElementById("screen-landing");
+var appContainer = document.getElementById("appContainer");
+var modalRoot = document.getElementById("modalRoot");
+var toastRoot = document.getElementById("toastRoot");
+
+function showLanding(){ state.screen="landing"; landingScreen.classList.remove("hidden"); appScreen.classList.add("hidden"); window.scrollTo({top:0, behavior:"smooth"}); }
+function showApp(){ landingScreen.classList.add("hidden"); appScreen.classList.remove("hidden"); window.scrollTo({top:0, behavior:"smooth"}); }
+
+function currentFields(){
+  if(stepIndex===1) return COMPANY_FIELDS;
+  if(stepIndex===2) return INCOME_FIELDS;
+  if(stepIndex===3) return ALL_BALANCE_FIELDS;
+  return [];
+}
+function currentValuesStore(){
+  if(stepIndex===1) return state.company;
+  if(stepIndex===2) return state.income;
+  if(stepIndex===3) return state.balance;
+  return {};
+}
+function renderStep(){
+  state.screen = "app";
+  if(stepIndex===1) appContainer.innerHTML = renderCompanyStep();
+  else if(stepIndex===2) appContainer.innerHTML = renderIncomeStep();
+  else if(stepIndex===3) appContainer.innerHTML = renderBalanceStep();
+  else if(stepIndex===4) appContainer.innerHTML = renderReviewStep();
+  else if(stepIndex===5){ appContainer.innerHTML = renderResults(); bindResultsInteractions(); }
+  showApp();
+  bindFieldListeners();
+  updateSnapshot();
+}
+function bindFieldListeners(){
+  var fields = currentFields(), store = currentValuesStore();
+  fields.forEach(function(f){
+    if(f.type==="select") return; // handled by the custom dropdown delegation below
+    var el = document.getElementById("f_"+f.key);
+    if(!el) return;
+    el.value = store[f.key]==null?"":store[f.key];
+    el.addEventListener("input", function(){ store[f.key]=el.value; clearFieldError(f.key); updateSnapshot(); });
+    el.addEventListener("blur", function(){ validateSingleField(f, store); });
+  });
+}
+function clearFieldError(key){
+  var errEl = document.getElementById("err_"+key), inputEl = document.getElementById("f_"+key);
+  if(errEl){ errEl.textContent=""; errEl.classList.remove("show"); }
+  if(inputEl) inputEl.classList.remove("invalid");
+}
+function validateSingleField(field, store){
+  var res = validateStep([field], store);
+  var errEl = document.getElementById("err_"+field.key), inputEl = document.getElementById("f_"+field.key);
+  if(res.errors[field.key]){ if(errEl){ errEl.textContent=res.errors[field.key]; errEl.classList.add("show"); } if(inputEl) inputEl.classList.add("invalid"); }
+  else clearFieldError(field.key);
+}
+function updateSnapshot(){
+  var snapEl = document.getElementById("liveSnapshot");
+  if(!snapEl) return;
+  var html = renderLiveSnapshot();
+  if(html){ snapEl.innerHTML = html; snapEl.style.display="block"; } else { snapEl.style.display="none"; }
+}
+function goNext(){
+  var fields = currentFields(), store = currentValuesStore();
+  var res = validateStep(fields, store);
+  if(!res.allValid){
+    var firstBad = null;
+    fields.forEach(function(f){
+      var errEl = document.getElementById("err_"+f.key), inputEl = document.getElementById("f_"+f.key);
+      if(res.errors[f.key]){ if(errEl){ errEl.textContent=res.errors[f.key]; errEl.classList.add("show"); } if(inputEl) inputEl.classList.add("invalid"); if(!firstBad) firstBad=f; }
+    });
+    if(firstBad){ var el=document.getElementById("f_"+firstBad.key); if(el) el.scrollIntoView({behavior:"smooth", block:"center"}); }
+    return;
+  }
+  if(stepIndex===2 || stepIndex===3){
+    fields.forEach(function(f){
+      var raw = (store[f.key]==null?"":store[f.key]).toString().trim();
+      store[f.key] = raw==="" ? null : Number(raw.replace(/,/g,""));
+    });
+  }
+  stepIndex += 1; renderStep();
+}
+function goPrev(){ stepIndex = Math.max(1, stepIndex-1); renderStep(); }
+function startAnalysis(){ stepIndex = 1; renderStep(); }
+function restart(){ resetAnalysis(); stepIndex = 1; showLanding(); }
+
+function bindResultsInteractions(){
+  appContainer.querySelectorAll("[data-toggle]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var panelId = btn.getAttribute("data-toggle"), panel = document.getElementById(panelId);
+      if(!panel) return;
+      var isShown = panel.classList.contains("show");
+      var card = btn.closest(".ratio-card") || btn.closest(".score-card-main");
+      if(card){
+        card.querySelectorAll(".ratio-panel.show").forEach(function(p){ if(p!==panel) p.classList.remove("show"); });
+        card.querySelectorAll(".ratio-toggle.active").forEach(function(b){ if(b!==btn) b.classList.remove("active"); });
+      }
+      panel.classList.toggle("show", !isShown);
+      btn.classList.toggle("active", !isShown);
+    });
+  });
+}
+
+/* ---------------- Custom dropdown behavior (shared by all cs-trigger/cs-panel pairs) ---------------- */
+var CS_STORE_MAP = {f_industry:{obj:function(){return state.company;}, key:"industry"}, f_currency:{obj:function(){return state.company;}, key:"currency"}};
+function closeAllCsPanels(){
+  document.querySelectorAll(".cs-panel.open").forEach(function(p){ p.classList.remove("open"); });
+  document.querySelectorAll(".cs-trigger.open").forEach(function(t){ t.classList.remove("open"); });
+}
+function openCsPanel(trigger, panel){
+  closeAllCsPanels();
+  var rect = trigger.getBoundingClientRect();
+  panel.style.top = (rect.bottom+8)+"px";
+  panel.style.left = rect.left+"px";
+  panel.style.width = rect.width+"px";
+  panel.classList.add("open");
+  trigger.classList.add("open");
+}
+document.addEventListener("click", function(e){
+  var trigger = e.target.closest(".cs-trigger");
+  var option = e.target.closest(".cs-option");
+  if(trigger){
+    var panel = document.getElementById("panel_"+trigger.id);
+    if(!panel) return;
+    var wasOpen = panel.classList.contains("open");
+    closeAllCsPanels();
+    if(!wasOpen) openCsPanel(trigger, panel);
+    return;
+  }
+  if(option){
+    var targetId = option.getAttribute("data-target");
+    var val = option.getAttribute("data-value");
+    var lbl = option.getAttribute("data-label");
+    var trig = document.getElementById(targetId);
+    if(trig){
+      trig.setAttribute("data-value", val);
+      trig.querySelector(".cs-trigger-text").textContent = lbl;
+      var panelEl = document.getElementById("panel_"+targetId);
+      if(panelEl){
+        panelEl.querySelectorAll(".cs-option").forEach(function(o){ o.classList.remove("selected"); });
+        option.classList.add("selected");
+      }
+      trig.classList.remove("invalid");
+      var errEl = document.getElementById("err_"+targetId.replace(/^f_/,"").replace(/^c_/,""));
+      if(errEl){ errEl.textContent=""; errEl.classList.remove("show"); }
+      var mapping = CS_STORE_MAP[targetId];
+      if(mapping) mapping.obj()[mapping.key] = val;
+      updateSnapshot();
+    }
+    closeAllCsPanels();
+    return;
+  }
+  if(!e.target.closest(".cs-panel")) closeAllCsPanels();
+});
+window.addEventListener("scroll", function(e){
+  // Ignore scrolling that happens *inside* an open dropdown panel — only close on page/ancestor scroll.
+  if(e.target && e.target.nodeType === 1 && typeof e.target.closest === "function" && e.target.closest(".cs-panel")) return;
+  closeAllCsPanels();
+}, true);
+window.addEventListener("resize", closeAllCsPanels);
+
+document.body.addEventListener("click", function(e){
+  var actionEl = e.target.closest("[data-action]");
+  if(!actionEl) return;
+  var action = actionEl.getAttribute("data-action");
+  switch(action){
+    case "start-analysis": e.preventDefault(); startAnalysis(); break;
+    case "back-landing": showLanding(); break;
+    case "next-step": goNext(); break;
+    case "prev-step": goPrev(); break;
+    case "analyze": stepIndex=5; renderStep(); break;
+    case "restart": restart(); break;
+    case "goto-balance": stepIndex=3; renderStep(); break;
+    case "goto-income": stepIndex=2; renderStep(); break;
+    case "open-connect": e.preventDefault(); openConnectModal(); break;
+    case "close-connect": closeConnectModal(); break;
+    default: break;
+  }
+});
+
+var hamburgerBtn = document.getElementById("hamburgerBtn");
+var navLinks = document.getElementById("navLinks");
+hamburgerBtn.addEventListener("click", function(){
+  var open = navLinks.classList.toggle("mobile-open");
+  hamburgerBtn.setAttribute("aria-expanded", String(open));
+});
+navLinks.querySelectorAll("a").forEach(function(a){ a.addEventListener("click", function(){ navLinks.classList.remove("mobile-open"); }); });
+
+var formsubmitPending = false;
+var formsubmitFallbackTimer = null;
+
+function revealConnectSuccess(){
+  formsubmitPending = false;
+  clearTimeout(formsubmitFallbackTimer);
+  var wrap = document.getElementById("connectFormWrap");
+  var succ = document.getElementById("connectSuccess");
+  if(wrap && succ){ wrap.classList.add("hidden"); succ.classList.remove("hidden"); }
+}
+// The hidden iframe's load event fires once FormSubmit finishes processing our POST.
+// We only react to it while a submission is actually in flight (formsubmitPending),
+// since the iframe also fires a load event on initial page load.
+document.getElementById("formsubmitHiddenFrame").addEventListener("load", function(){
+  if(formsubmitPending) revealConnectSuccess();
+});
+
+function openConnectModal(){
+  modalRoot.innerHTML = connectModalMarkup();
+  var overlay = document.getElementById("connectModal");
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) closeConnectModal(); });
+  document.addEventListener("keydown", escCloseModal);
+  var form = document.getElementById("connectForm");
+  form.addEventListener("submit", function(e){
+    var typeTrigger = document.getElementById("c_type");
+    var queryType = (typeTrigger && typeTrigger.getAttribute("data-value")) || "General Query";
+    var data = {name:form.name.value.trim(), email:form.email.value.trim(), queryType:queryType, message:form.message.value.trim()};
+    var res = validateContactForm(data);
+    document.querySelectorAll("#connectForm .field-error").forEach(function(el){ el.textContent=""; el.classList.remove("show"); });
+    if(!res.allValid){
+      e.preventDefault();
+      Object.keys(res.errors).forEach(function(key){
+        var el = document.getElementById("err_c_"+key);
+        if(el){ el.textContent=res.errors[key]; el.classList.add("show"); }
+      });
+      return;
+    }
+    // Valid — fill in the hidden fields FormSubmit needs, then let the browser
+    // perform a real POST into the hidden iframe (no fetch/CORS involved at all,
+    // so this works reliably even when the page is opened directly as a local file).
+    document.getElementById("c_subject_hidden").value = "VR FinSight — " + data.queryType + " from " + data.name;
+    document.getElementById("c_replyto_hidden").value = data.email;
+    document.getElementById("c_type_hidden").value = data.queryType;
+    var btn = document.getElementById("connectSubmitBtn");
+    btn.disabled = true; btn.textContent = "Sending…";
+    formsubmitPending = true;
+    clearTimeout(formsubmitFallbackTimer);
+    // Safety net: if the iframe's load event doesn't fire for any reason, still
+    // confirm to the user after a few seconds rather than leaving the button stuck.
+    formsubmitFallbackTimer = setTimeout(revealConnectSuccess, 5000);
+    // No e.preventDefault() here — the form submits natively to formsubmitHiddenFrame.
+  });
+}
+function escCloseModal(e){ if(e.key==="Escape") closeConnectModal(); }
+function closeConnectModal(){ modalRoot.innerHTML=""; document.removeEventListener("keydown", escCloseModal); }
+
+var toastTimer=null;
+function showToast(msg){
+  toastRoot.innerHTML = '<div class="toast" id="toastEl">'+msg+'</div>';
+  var el = document.getElementById("toastEl");
+  requestAnimationFrame(function(){ el.classList.add("show"); });
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove("show"); }, 4500);
+}
+
+/* scroll reveal */
+if("IntersectionObserver" in window){
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){ if(entry.isIntersecting){ entry.target.classList.add("in"); io.unobserve(entry.target); } });
+  }, {threshold:0.15});
+  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+} else {
+  document.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); });
+}
+
+showLanding();
+})();
+</script>
+</body>
+</html>
