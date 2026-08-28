@@ -536,7 +536,7 @@ footer{border-top:1px solid var(--border); padding:60px 0 34px; margin-top:40px;
         <h4>Elsewhere</h4>
         <a href="https://venkata-portfolio-plum.vercel.app/" target="_blank" rel="noopener">Portfolio</a>
         <a href="https://www.linkedin.com/in/venkatarajgopalv712b06267" target="_blank" rel="noopener">LinkedIn</a>
-        <a href="#" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/venkatarajgopalv-spec/VR-FinSight" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -558,7 +558,7 @@ footer{border-top:1px solid var(--border); padding:60px 0 34px; margin-top:40px;
 "use strict";
 
 /* ============================ CONFIG ============================ */
-var LINKS = { portfolio:"https://venkata-portfolio-plum.vercel.app/", linkedin:"https://www.linkedin.com/in/venkatarajgopalv712b06267", github:"#" };
+var LINKS = { portfolio:"https://venkata-portfolio-plum.vercel.app/", linkedin:"https://www.linkedin.com/in/venkatarajgopalv712b06267", github:"https://github.com/venkatarajgopalv-spec/VR-FinSight" };
 var CURRENCIES = {
   INR:{symbol:"₹", label:"INR — Indian Rupee"}, USD:{symbol:"$", label:"USD — US Dollar"},
   EUR:{symbol:"€", label:"EUR — Euro"}, GBP:{symbol:"£", label:"GBP — British Pound"}, AED:{symbol:"د.إ", label:"AED — UAE Dirham"}
@@ -1205,7 +1205,7 @@ var appContainer = document.getElementById("appContainer");
 var modalRoot = document.getElementById("modalRoot");
 var toastRoot = document.getElementById("toastRoot");
 
-function showLanding(){ state.screen="landing"; landingScreen.classList.remove("hidden"); appScreen.classList.add("hidden"); window.scrollTo({top:0, behavior:"smooth"}); }
+function showLanding(skipScroll){ state.screen="landing"; landingScreen.classList.remove("hidden"); appScreen.classList.add("hidden"); if(!skipScroll) window.scrollTo({top:0, behavior:"smooth"}); }
 function showApp(){ landingScreen.classList.add("hidden"); appScreen.classList.remove("hidden"); window.scrollTo({top:0, behavior:"smooth"}); }
 
 function currentFields(){
@@ -1384,6 +1384,24 @@ hamburgerBtn.addEventListener("click", function(){
   hamburgerBtn.setAttribute("aria-expanded", String(open));
 });
 navLinks.querySelectorAll("a").forEach(function(a){ a.addEventListener("click", function(){ navLinks.classList.remove("mobile-open"); }); });
+
+// Section-jump links (Home / How It Works / About, in the navbar and footer) point to
+// sections that live on the landing screen. If we're currently inside the guided
+// form or results screen, that content is hidden — so jump back to landing first,
+// then scroll to the target section once it's visible again.
+document.body.addEventListener("click", function(e){
+  var link = e.target.closest('a[href^="#"]');
+  if(!link || link.hasAttribute("data-action")) return; // "data-action" links (Start Analysis, Connect) are handled elsewhere
+  var targetId = link.getAttribute("href").slice(1);
+  if(!targetId) return;
+  var targetEl = document.getElementById(targetId);
+  if(!targetEl) return;
+  e.preventDefault();
+  var wasInApp = state.screen !== "landing";
+  if(wasInApp) showLanding(true);
+  var doScroll = function(){ targetEl.scrollIntoView({behavior:"smooth", block:"start"}); };
+  if(wasInApp){ setTimeout(doScroll, 60); } else { doScroll(); }
+});
 
 var formsubmitPending = false;
 var formsubmitFallbackTimer = null;
