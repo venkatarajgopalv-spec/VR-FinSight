@@ -1,0 +1,6 @@
+{
+  "name": "vr-finsight",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VR FinSight — static site with a Vercel Serverless Function for secure statement-image analysis."
+}
