@@ -380,6 +380,67 @@ footer{border-top:1px solid var(--border); padding:60px 0 34px; margin-top:40px;
   .score-big{font-size:56px;}
 }
 .nav-links.mobile-open{display:flex; position:absolute; top:64px; left:0; right:0; background:#0b0d18; border:1px solid var(--border); flex-direction:column; padding:22px 24px; border-radius:20px; gap:18px;}
+
+/* ---------------- Mode select ---------------- */
+.mode-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px; max-width:820px; margin:0 auto;}
+.mode-card{position:relative; text-align:left; background:var(--glass); border:1px solid var(--border); border-radius:var(--r-xl); padding:32px 28px; cursor:pointer; transition:transform .2s, border-color .2s; overflow:hidden;}
+.mode-card::before{content:""; position:absolute; inset:0; background:var(--grad); opacity:0; transition:opacity .2s; z-index:0;}
+.mode-card:hover{transform:translateY(-5px); border-color:var(--border-hi);}
+.mode-card:hover::before{opacity:.06;}
+.mode-card > *{position:relative; z-index:1;}
+.mode-card .mode-icon{font-size:26px; margin-bottom:16px;}
+.mode-card h3{font-size:19px; margin-bottom:9px;}
+.mode-card p{color:var(--ink-muted); font-size:14px; line-height:1.55; margin-bottom:14px;}
+.mode-card .mode-cta{font-family:var(--font-m); font-size:12.5px; color:var(--v2);}
+@media (max-width:680px){ .mode-grid{grid-template-columns:1fr;} }
+
+/* ---------------- Image upload ---------------- */
+.dropzone{border:1.5px dashed var(--border-hi); border-radius:var(--r-lg); padding:38px 24px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; margin-bottom:20px;}
+.dropzone:hover, .dropzone:focus{border-color:var(--v2); background:rgba(0,229,255,0.03); outline:none;}
+.dropzone.dragover{border-color:var(--v2); background:rgba(0,229,255,0.06);}
+.dropzone-icon{font-size:26px; color:var(--v2); margin-bottom:10px;}
+.dropzone-text{font-size:15px; margin-bottom:6px;}
+.dropzone-link{color:var(--v2); border-bottom:1px dashed var(--v2);}
+.dropzone-sub{font-size:12.5px; color:var(--ink-faint);}
+.file-list{display:flex; flex-direction:column; gap:10px; margin-bottom:10px;}
+.file-item{display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:12px 14px;}
+.file-item-thumb{width:42px; height:42px; border-radius:8px; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.03); font-size:18px;}
+.file-item-thumb img{width:100%; height:100%; object-fit:cover;}
+.file-item-info{flex:1; min-width:0;}
+.file-item-name{font-size:13.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.file-item-meta{font-size:11.5px; color:var(--ink-faint);}
+.file-item-error{font-size:11.5px; color:var(--critical); margin-top:3px;}
+.file-item-remove{background:none; border:none; color:var(--ink-faint); font-size:15px; padding:6px; flex-shrink:0;}
+.file-item-remove:hover{color:var(--critical);}
+.field-badge.healthy-badge{background:var(--healthy-soft); color:var(--healthy);}
+.field-source-note{font-size:11.5px; color:var(--ink-faint); margin-top:7px;}
+.field-conflict-note{font-size:11.5px; color:var(--warning); margin-top:5px; line-height:1.5;}
+.year-tabs{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 28px; padding-bottom:18px; border-bottom:1px solid var(--border);}
+.year-tab{font-family:var(--font-m); font-size:12.5px; padding:9px 16px; border-radius:100px; background:rgba(255,255,255,0.02); border:1px solid var(--border); color:var(--ink-muted); transition:all .15s;}
+.year-tab:hover{border-color:var(--v2); color:var(--v2);}
+.year-tab.active{background:var(--grad); color:#050611; border-color:transparent; font-weight:700;}
+.year-review-panel{display:none;}
+.year-review-panel.active{display:block;}
+.results-year-tabs{max-width:1120px; margin:0 auto 30px; padding:0 24px;}
+.results-tab-panel{display:none;}
+.results-tab-panel.active{display:block;}
+.trend-table-wrap{overflow-x:auto; margin-bottom:32px;}
+.trend-table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:520px;}
+.trend-table th, .trend-table td{padding:12px 16px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap;}
+.trend-table th:first-child, .trend-table td:first-child{text-align:left; color:var(--ink-muted);}
+.trend-table th{font-family:var(--font-m); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:600;}
+.trend-table td{font-family:var(--font-m);}
+.trend-change{font-size:12px; margin-left:6px;}
+.trend-change.up{color:var(--healthy);}
+.trend-change.down{color:var(--critical);}
+.trend-change.flat{color:var(--ink-faint);}
+.score-trend-row{display:flex; align-items:center; gap:14px; margin-bottom:12px;}
+.score-trend-row .stlabel{width:110px; flex-shrink:0; font-size:12.5px; color:var(--ink-muted);}
+.score-trend-row .stbar-track{flex:1; height:10px; background:var(--border); border-radius:100px; overflow:hidden; position:relative;}
+.score-trend-row .stbar-fill{height:100%; border-radius:100px; transition:width .8s ease;}
+.score-trend-row .stval{width:44px; text-align:right; font-family:var(--font-m); font-size:13px; font-weight:700; flex-shrink:0;}
+.spinner-inline{display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,0.25); border-top-color:var(--v2); border-radius:50%; animation:spin .7s linear infinite; margin-right:6px; vertical-align:-2px;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
@@ -565,6 +626,12 @@ var CURRENCIES = {
 };
 var INDUSTRIES = ["Manufacturing","Retail","IT / Technology","Healthcare","Banking / Financial Services","FMCG","Automobile","Construction","Logistics","Other"];
 
+/* ============================ IMAGE UPLOAD CONFIG ============================ */
+// Statement images are analyzed by a Vercel Serverless Function (/api/analyze-statement),
+// which holds the Anthropic API key server-side. The browser never sees the key — it just
+// posts the image to this same-origin endpoint. See /api/analyze-statement.js.
+var ANALYZE_ENDPOINT = "/api/analyze-statement";
+
 function formatCurrency(value, currencyCode){
   currencyCode = currencyCode || "INR";
   if(value===null||value===undefined||isNaN(value)) return "—";
@@ -630,6 +697,7 @@ var BALANCE_FIELDS = {
   ]
 };
 var ALL_BALANCE_FIELDS = [].concat(BALANCE_FIELDS.currentAssets, BALANCE_FIELDS.nonCurrentAssets, BALANCE_FIELDS.currentLiabilities, BALANCE_FIELDS.longTermFinancing);
+var INCOME_FIELD_KEYS = {}; INCOME_FIELDS.forEach(function(f){ INCOME_FIELD_KEYS[f.key]=1; });
 
 /* ============================ VALIDATION ============================ */
 function validateNumberField(rawValue, field){
@@ -675,7 +743,8 @@ function need(){
   var vals = Array.prototype.slice.call(arguments);
   return vals.every(function(v){ return v!==null && v!==undefined; }) ? vals : null;
 }
-function deriveFinancials(income, balance){
+function deriveFinancials(income, balance, overrides){
+  overrides = overrides || {};
   var d = {};
   d.revenue = income.revenue==null?null:income.revenue;
   d.cogs = income.cogs==null?null:income.cogs;
@@ -714,6 +783,18 @@ function deriveFinancials(income, balance){
   d.shareholdersEquity = need(d.equityCapital, d.reserves) ? d.equityCapital+d.reserves : null;
   d.totalDebt = d.longTermDebt!==null ? d.longTermDebt + (d.shortTermBorrowings!==null?d.shortTermBorrowings:0) : null;
   d.fixedInterestBearingSecurities = sumOptional(d.longTermDebt, d.preferenceCapital);
+
+  // Optional fallback overrides: only used to fill a gap when the figure could not be built from its
+  // components (e.g. a statement shows only "Net Profit" without a full expense breakdown). Never used
+  // to replace a value that was already computed from actual line items. This never affects the
+  // Manual Entry flow, which never supplies overrides.
+  ["grossProfit","operatingProfit","netProfit","totalAssets","totalDebt","shareholdersEquity","currentAssets","currentLiabilities"].forEach(function(k){
+    if((d[k]===null || d[k]===undefined) && overrides[k]!==null && overrides[k]!==undefined && !isNaN(overrides[k])){
+      d[k] = overrides[k];
+    }
+  });
+  d.ebit = d.operatingProfit;
+  if(d.totalAssets===null && d.currentAssets!==null) d.totalAssets = d.currentAssets + (d.nonCurrentAssets!==null?d.nonCurrentAssets:0);
   return d;
 }
 
@@ -1000,12 +1081,29 @@ function buildActionPlan(results, findings){
 }
 
 /* ============================ STATE ============================ */
-var state = {screen:"landing", company:{companyName:"",industry:"",financialYear:"",currency:"INR"}, income:{}, balance:{}, results:null};
-function resetAnalysis(){ state.screen="landing"; state.company={companyName:"",industry:"",financialYear:"",currency:"INR"}; state.income={}; state.balance={}; state.results=null; }
+var state = {screen:"landing", mode:"manual", company:{companyName:"",industry:"",financialYear:"",currency:"INR"}, income:{}, balance:{}, results:null, upload:null};
+function resetAnalysis(){ state.screen="landing"; state.mode="manual"; state.company={companyName:"",industry:"",financialYear:"",currency:"INR"}; state.income={}; state.balance={}; state.results=null; resetUpload(); }
 
 var STEP_TITLES = ["Company Information","Profitability Inputs","Financial Position","Review Entered Data"];
 var TOTAL_STEPS = 4;
 var stepIndex = 1;
+
+/* ============================ IMAGE UPLOAD STATE ============================ */
+var fileIdCounter = 0;
+var uploadStep = "setup"; // "setup" | "review" | "results"
+var currentUploadTab = null; // active year key on the review screen
+var currentResultsTab = "trends"; // active tab on the multi-year results screen
+function freshUploadState(){
+  return {
+    processing:false,
+    files:[],
+    years:{}, // yearKey -> {displayLabel, income:{}, balance:{}, overrides:{}, meta:{}, currencyHint}
+    company:{companyName:"", industry:"", currency:"INR"},
+    resultEntries:null
+  };
+}
+function resetUpload(){ state.upload = freshUploadState(); uploadStep="setup"; currentUploadTab=null; currentResultsTab="trends"; }
+resetUpload();
 
 /* ============================ UI RENDER ============================ */
 function progressBar(step){
@@ -1092,29 +1190,483 @@ function renderReviewStep(){
     + '<div class="form-actions"><button class="btn btn-ghost" data-action="prev-step">← Back</button><button class="btn btn-primary" data-action="analyze">ANALYZE COMPANY →</button></div></div>';
 }
 
+/* ============================ MODE SELECT ============================ */
+function renderModeSelect(){
+  return '<div class="section-head center" style="max-width:640px; margin:0 auto 40px;"><span class="section-eyebrow">Start Analysis</span><h2>How would you like to enter the numbers?</h2><p>Both paths run through the same 17-ratio analysis engine.</p></div>'
+    + '<div class="mode-grid">'
+    + '<div class="mode-card" data-action="choose-manual"><div class="mode-icon">⌨️</div><h3>Manual Entry</h3><p>Type in the figures yourself, field by field, with guided help text for each one.</p><span class="mode-cta">START MANUAL ENTRY →</span></div>'
+    + '<div class="mode-card" data-action="choose-upload"><div class="mode-icon">🖼️</div><h3>Upload Statements</h3><p>Upload photos or screenshots of your P&amp;L, Balance Sheet and/or Cash Flow statements — any number of pages, any number of years. VR FinSight reads and organizes the figures for you to review before analysis.</p><span class="mode-cta">START IMAGE UPLOAD →</span></div>'
+    + '</div>';
+}
+
+/* ============================ IMAGE UPLOAD — helpers ============================ */
+function formatBytes(bytes){
+  if(bytes==null) return "";
+  if(bytes<1024) return bytes+" B";
+  if(bytes<1024*1024) return (bytes/1024).toFixed(0)+" KB";
+  return (bytes/(1024*1024)).toFixed(1)+" MB";
+}
+function sanitizeKey(s){ return (s||"").toString().replace(/[^a-zA-Z0-9]/g,"_"); }
+function extractYearSortValue(yk){ var m = (yk||"").match(/(19|20)\d{2}/); return m ? parseInt(m[0],10) : 999999; }
+function sortYearKeys(a,b){ return extractYearSortValue(a)-extractYearSortValue(b); }
+function sortedUploadYearKeys(){ return Object.keys(state.upload.years).sort(sortYearKeys); }
+function normalizeYearLabel(raw){
+  if(!raw) return null;
+  var s = raw.toString().trim();
+  if(s==="") return null;
+  var range = s.match(/((?:19|20)\d{2})\s*[-\/–—]\s*((?:19|20)?\d{2})/);
+  if(range){
+    var y1=range[1], y2=range[2];
+    if(y2.length===2) y2 = y1.slice(0,2)+y2;
+    return "FY "+y1+"–"+y2;
+  }
+  var single = s.match(/(19|20)\d{2}/);
+  if(single) return "FY "+single[0];
+  return s;
+}
+function mapCurrencyHint(hint){
+  if(!hint) return null;
+  var h = hint.toString().trim().toUpperCase();
+  if(h.indexOf("₹")>-1 || h==="INR" || h.indexOf("RUPEE")>-1) return "INR";
+  if(h.indexOf("$")>-1 || h==="USD" || h.indexOf("DOLLAR")>-1) return "USD";
+  if(h.indexOf("€")>-1 || h==="EUR" || h.indexOf("EURO")>-1) return "EUR";
+  if(h.indexOf("£")>-1 || h==="GBP" || h.indexOf("POUND")>-1) return "GBP";
+  if(h.indexOf("AED")>-1 || h.indexOf("DIRHAM")>-1) return "AED";
+  return null;
+}
+function fileStatusBadge(f){
+  var map = {pending:["Pending","unavailable"], processing:['<span class="spinner-inline"></span>Extracting…',"unavailable"], done:["Extracted","healthy"], error:["Failed","critical"]};
+  var m = map[f.status]||map.pending;
+  return '<span class="file-item-status status-badge '+m[1]+'">'+m[0]+'</span>';
+}
+function updateUploadFileRow(f){
+  var row = document.getElementById("filerow_"+f.id);
+  if(!row) return;
+  var statusEl = row.querySelector(".file-item-status");
+  if(statusEl) statusEl.outerHTML = fileStatusBadge(f);
+  var errWrap = row.querySelector(".file-item-info");
+  if(errWrap){
+    var existingErr = errWrap.querySelector(".file-item-error");
+    if(existingErr) existingErr.remove();
+    if(f.status==="error" && f.error){
+      var d = document.createElement("div"); d.className="file-item-error"; d.textContent=f.error; errWrap.appendChild(d);
+    }
+  }
+}
+// Merges one page's extraction result into the year bucket it belongs to. Never overwrites a
+// value already captured from an earlier page for the same field — instead flags a conflict so
+// the person can verify it manually on the review screen.
+function ingestExtraction(fileMeta, extracted){
+  var yearKey = normalizeYearLabel(extracted.financialYear) || "Unspecified Year";
+  if(!state.upload.years[yearKey]){
+    state.upload.years[yearKey] = {displayLabel:yearKey, income:{}, balance:{}, overrides:{}, meta:{}, currencyHint:null, statementTypesSeen:{}};
+  }
+  var bucket = state.upload.years[yearKey];
+  if(extracted.currencyHint && !bucket.currencyHint) bucket.currencyHint = extracted.currencyHint;
+  if(extracted.statementType) bucket.statementTypesSeen[extracted.statementType]=true;
+  var f = extracted.fields||{};
+  function assign(store, key, rawVal){
+    if(rawVal===null || rawVal===undefined || rawVal==="") return;
+    var num = Number(rawVal);
+    if(isNaN(num)) return;
+    if(store[key]===undefined || store[key]===null){
+      store[key]=num;
+      bucket.meta[key] = {source:fileMeta.name, alt:[]};
+    } else if(store[key]!==num){
+      bucket.meta[key] = bucket.meta[key] || {source:fileMeta.name, alt:[]};
+      bucket.meta[key].alt.push({value:num, source:fileMeta.name});
+    }
+  }
+  ["revenue","cogs","operatingExpenses","interestExpense","taxExpense"].forEach(function(k){ assign(bucket.income,k,f[k]); });
+  ["cash","receivables","inventory","otherCurrentAssets","ppe","otherNonCurrentAssets","payables","shortTermBorrowings","otherCurrentLiabilities","longTermDebt","preferenceCapital","equityCapital","reserves"].forEach(function(k){ assign(bucket.balance,k,f[k]); });
+  ["grossProfit","operatingProfit","netProfit","totalAssets","totalDebt","shareholdersEquity"].forEach(function(k){ assign(bucket.overrides,k,f[k]); });
+  if(f.totalCurrentAssets!=null) assign(bucket.overrides,"currentAssets", f.totalCurrentAssets);
+  if(f.totalCurrentLiabilities!=null) assign(bucket.overrides,"currentLiabilities", f.totalCurrentLiabilities);
+  return yearKey;
+}
+// Sends one statement-page image to our own backend (/api/analyze-statement), which holds the
+// Anthropic API key server-side. No key ever touches the browser.
+async function callAnthropicVision(base64Data, mimeType){
+  var resp = await fetch(ANALYZE_ENDPOINT, {
+    method:"POST",
+    headers:{ "content-type":"application/json" },
+    body: JSON.stringify({ base64:base64Data, mimeType:mimeType })
+  });
+  var data;
+  try{ data = await resp.json(); } catch(e){ throw new Error("Unexpected response from the analysis service."); }
+  if(!resp.ok){
+    throw new Error((data && data.error) || ("Analysis service error ("+resp.status+")."));
+  }
+  return data;
+}
+function handleIncomingFiles(fileList){
+  var arr = Array.prototype.slice.call(fileList);
+  var imageFiles = arr.filter(function(f){ return /^image\//.test(f.type); });
+  if(imageFiles.length===0){ showToast("Please upload image files (JPG, PNG, or WEBP)."); return; }
+  var remaining = imageFiles.length;
+  imageFiles.forEach(function(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var dataUrl = reader.result;
+      var base64 = dataUrl.split(",")[1];
+      state.upload.files.push({ id:"f"+(++fileIdCounter), name:file.name, size:file.size, mimeType:file.type, base64:base64, dataUrlPreview:dataUrl, status:"pending", extracted:null, error:null });
+      remaining--;
+      if(remaining===0) renderStep();
+    };
+    reader.onerror = function(){ remaining--; if(remaining===0) renderStep(); };
+    reader.readAsDataURL(file);
+  });
+}
+function removeUploadFile(id){ state.upload.files = state.upload.files.filter(function(f){ return f.id!==id; }); renderStep(); }
+async function runExtraction(){
+  var pending = state.upload.files.filter(function(f){ return f.status==="pending" || f.status==="error"; });
+  if(pending.length===0){ showToast("Add at least one image to extract."); return; }
+  state.upload.processing = true;
+  renderStep();
+  for(var i=0;i<pending.length;i++){
+    var fmeta = pending[i];
+    fmeta.status="processing"; fmeta.error=null;
+    updateUploadFileRow(fmeta);
+    try{
+      var extracted = await callAnthropicVision(fmeta.base64, fmeta.mimeType);
+      fmeta.extracted = extracted;
+      fmeta.status="done";
+      ingestExtraction(fmeta, extracted);
+    }catch(e){
+      fmeta.status="error";
+      fmeta.error = (e && e.message) || "Extraction failed.";
+    }
+    updateUploadFileRow(fmeta);
+  }
+  state.upload.processing = false;
+  var years = sortedUploadYearKeys();
+  if(years.length===0){
+    showToast("No data could be extracted yet. Check the errors below and try again.");
+    renderStep();
+    return;
+  }
+  var defaultCode = null;
+  years.some(function(yk){ var c = mapCurrencyHint(state.upload.years[yk].currencyHint); if(c){ defaultCode=c; return true; } return false; });
+  if(defaultCode) state.upload.company.currency = defaultCode;
+  currentUploadTab = years[0];
+  uploadStep = "review";
+  renderStep();
+}
+
+/* ============================ IMAGE UPLOAD — screens ============================ */
+function uploadProgressBar(step){
+  var total=3, labels=["Upload Statements","Review & Edit","Analysis"];
+  var pct = Math.round((step/total)*100);
+  return '<div class="progress-wrap"><div class="progress-label"><span>STEP '+step+' OF '+total+'</span><span>'+labels[step-1]+'</span></div><div class="progress-track"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>';
+}
+function renderUploadSetup(){
+  var files = state.upload.files, processing = state.upload.processing;
+  var fileRows = files.map(function(f){
+    return '<div class="file-item" id="filerow_'+f.id+'">'
+      + '<div class="file-item-thumb"><img src="'+f.dataUrlPreview+'" alt="" /></div>'
+      + '<div class="file-item-info"><div class="file-item-name">'+esc(f.name)+'</div><div class="file-item-meta">'+esc(formatBytes(f.size))+'</div>'
+      + (f.status==="error"&&f.error?('<div class="file-item-error">'+esc(f.error)+'</div>'):'')
+      + '</div>'
+      + fileStatusBadge(f)
+      + (!processing?('<button type="button" class="file-item-remove" data-remove-file="'+f.id+'" aria-label="Remove file">✕</button>'):'')
+      + '</div>';
+  }).join("");
+  return uploadProgressBar(1)
+    + '<div class="form-card">'
+    + '<h2>Upload Financial Statements</h2>'
+    + '<p class="form-sub">Upload P&amp;L, Balance Sheet and/or Cash Flow images — any number of pages, any number of years. VR FinSight identifies the statement type and financial year for each page automatically and analyzes them securely on our server — no API key needed.</p>'
+    + '<div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload statement images">'
+    + '<div class="dropzone-icon">⬆</div><div class="dropzone-text"><strong>Drag &amp; drop</strong> images here, or <span class="dropzone-link">browse files</span></div>'
+    + '<div class="dropzone-sub">JPG, PNG or WEBP · unlimited pages · multiple years supported</div>'
+    + '<input type="file" id="fileInput" accept="image/*" multiple style="display:none;" '+(processing?"disabled":"")+' />'
+    + '</div>'
+    + (files.length?('<div class="file-list">'+fileRows+'</div>'):'')
+    + '<div class="form-actions"><button class="btn btn-ghost" data-action="back-mode-select" '+(processing?"disabled":"")+'>← Back</button>'
+    + '<button class="btn btn-primary" data-action="upload-run-extraction" '+((processing||files.length===0)?"disabled":"")+'>'+(processing?'<span class="spinner-inline"></span>Extracting…':"EXTRACT DATA →")+'</button></div>'
+    + '</div>';
+}
+function bindUploadSetupEvents(){
+  var dz = document.getElementById("dropzone"), fi = document.getElementById("fileInput");
+  if(!dz||!fi) return;
+  dz.addEventListener("click", function(){ fi.click(); });
+  dz.addEventListener("keydown", function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fi.click(); } });
+  fi.addEventListener("change", function(){ handleIncomingFiles(fi.files); fi.value=""; });
+  ["dragenter","dragover"].forEach(function(evt){ dz.addEventListener(evt, function(e){ e.preventDefault(); e.stopPropagation(); dz.classList.add("dragover"); }); });
+  ["dragleave","drop"].forEach(function(evt){ dz.addEventListener(evt, function(e){ e.preventDefault(); e.stopPropagation(); dz.classList.remove("dragover"); }); });
+  dz.addEventListener("drop", function(e){ if(e.dataTransfer && e.dataTransfer.files) handleIncomingFiles(e.dataTransfer.files); });
+  appContainer.querySelectorAll("[data-remove-file]").forEach(function(btn){
+    btn.addEventListener("click", function(){ removeUploadFile(btn.getAttribute("data-remove-file")); });
+  });
+}
+function uploadEditableField(field, value, curSymbol, yearKey, meta, isOverride){
+  var id = "u_"+sanitizeKey(yearKey)+"_"+(isOverride?"ov_":"")+field.key;
+  var val = (value===null||value===undefined)?"":value;
+  var isEmpty = (val==="");
+  var sourceNote = "";
+  if(meta && meta.source) sourceNote += '<div class="field-source-note">Read from: '+esc(meta.source)+'</div>';
+  if(meta && meta.alt && meta.alt.length){
+    sourceNote += '<div class="field-conflict-note">⚠ A different value was also found: '+meta.alt.map(function(a){ return formatNumber(a.value,0)+" ("+esc(a.source)+")"; }).join(", ")+" — please verify which is correct.</div>";
+  }
+  return '<div class="field"><div class="field-label-row"><label class="field-label" for="'+id+'">'+esc(field.label)+'</label>'
+    + '<span class="field-badge '+(isEmpty?"optional":"healthy-badge")+'">'+(isEmpty?"Not available":"Extracted")+'</span></div>'
+    + '<div class="field-input-wrap"><span class="field-currency-prefix">'+curSymbol+'</span><input type="text" inputmode="decimal" class="currency upload-field-input" id="'+id+'" data-year-key="'+esc(yearKey)+'" data-field-key="'+esc(field.key)+'" data-store="'+(isOverride?"overrides":(INCOME_FIELD_KEYS[field.key]?"income":"balance"))+'" value="'+esc(val)+'" placeholder="Not available" /></div>'
+    + sourceNote
+    + (field.help?('<div class="field-help">'+esc(field.help)+'</div>'):'')
+    + '</div>';
+}
+var UPLOAD_OVERRIDE_FIELDS = [
+  {key:"grossProfit", label:"Gross Profit (as reported on statement)"},
+  {key:"operatingProfit", label:"Operating Profit / EBIT (as reported on statement)"},
+  {key:"netProfit", label:"Net Profit (as reported on statement)"},
+  {key:"totalAssets", label:"Total Assets (as reported on statement)"},
+  {key:"totalDebt", label:"Total Debt (as reported on statement)"},
+  {key:"shareholdersEquity", label:"Shareholders' Equity (as reported on statement)"}
+];
+function renderUploadCompanyCard(){
+  var c = state.upload.company;
+  return '<div class="field-group-title">Company</div>'
+    + '<div class="field"><div class="field-label-row"><label class="field-label" for="u_companyName">Company Name</label><span class="field-badge required">★ Required</span></div><input type="text" id="u_companyName" value="'+esc(c.companyName)+'" placeholder="e.g. Meridian Textiles Pvt Ltd" autocomplete="off" /><div class="field-error" id="err_u_companyName"></div></div>'
+    + '<div class="field"><div class="field-label-row"><label class="field-label">Industry</label><span class="field-badge optional">Optional</span></div>'
+    + renderCustomSelect("u_industry", INDUSTRIES.map(function(i){return {value:i,label:i};}), c.industry, "Select…")
+    + '</div>'
+    + '<div class="field"><div class="field-label-row"><label class="field-label">Currency</label><span class="field-badge required">★ Required</span></div>'
+    + renderCustomSelect("u_currency", Object.keys(CURRENCIES).map(function(code){return {value:code,label:CURRENCIES[code].label};}), c.currency, "Select…")
+    + '<div class="field-help">Auto-detected where possible from the statements you uploaded — please verify it\'s correct.</div></div>';
+}
+function renderYearReviewPanel(yk, active){
+  var b = state.upload.years[yk];
+  var curSym = (CURRENCIES[state.upload.company.currency]||{}).symbol||"₹";
+  function field(f, store){ return uploadEditableField(f, store[f.key], curSym, yk, b.meta[f.key]); }
+  return '<div class="year-review-panel'+(active?" active":"")+'" id="yrpanel_'+sanitizeKey(yk)+'" data-year-key="'+esc(yk)+'">'
+    + '<div class="field"><div class="field-label-row"><label class="field-label">Financial Year Label</label><span class="field-badge required">★ Required</span></div><input type="text" class="u-year-label" data-year-key="'+esc(yk)+'" value="'+esc(b.displayLabel||yk)+'" /></div>'
+    + '<div class="field-group-title">Profitability Inputs</div>' + INCOME_FIELDS.map(function(f){ return field(f, b.income); }).join("")
+    + '<div class="field-group-title">Current Assets</div>' + BALANCE_FIELDS.currentAssets.map(function(f){ return field(f, b.balance); }).join("")
+    + '<div class="field-group-title">Non-Current Assets</div>' + BALANCE_FIELDS.nonCurrentAssets.map(function(f){ return field(f, b.balance); }).join("")
+    + '<div class="field-group-title">Current Liabilities</div>' + BALANCE_FIELDS.currentLiabilities.map(function(f){ return field(f, b.balance); }).join("")
+    + '<div class="field-group-title">Long-Term Financing</div>' + BALANCE_FIELDS.longTermFinancing.map(function(f){ return field(f, b.balance); }).join("")
+    + '<div class="field-group-title">Reported Summary Figures <span style="text-transform:none; color:var(--ink-faint); font-family:var(--font-b); letter-spacing:0;">(used only to fill a gap above, when a breakdown wasn\'t available)</span></div>'
+    + UPLOAD_OVERRIDE_FIELDS.map(function(f){ return uploadEditableField(f, b.overrides[f.key], curSym, yk, b.meta[f.key], true); }).join("")
+    + (sortedUploadYearKeys().length>1 ? ('<button type="button" class="btn btn-ghost btn-sm" data-remove-year="'+esc(yk)+'" style="margin-top:8px;">Remove this year from analysis</button>') : '')
+    + '</div>';
+}
+function renderUploadReview(){
+  var years = sortedUploadYearKeys();
+  var multi = years.length>1;
+  var tabsBar = multi ? ('<div class="year-tabs">'+years.map(function(yk){
+      var b = state.upload.years[yk];
+      return '<button type="button" class="year-tab'+(yk===currentUploadTab?" active":"")+'" data-year-tab="'+esc(yk)+'">'+esc(b.displayLabel||yk)+'</button>';
+    }).join("")+'</div>') : "";
+  var panels = years.map(function(yk){ return renderYearReviewPanel(yk, yk===currentUploadTab); }).join("");
+  return uploadProgressBar(2)
+    + '<div class="form-card" style="max-width:880px;">'
+    + '<h2>Review Extracted Data</h2>'
+    + '<p class="form-sub">Check every figure below. Anything VR FinSight couldn\'t read clearly is marked "Not available" — fill it in only if you know the correct figure, or leave it blank to keep the ratios that depend on it unavailable.</p>'
+    + renderUploadCompanyCard()
+    + tabsBar
+    + panels
+    + '<div class="form-actions"><button class="btn btn-ghost" data-action="upload-back-setup">← Back to Upload</button><button class="btn btn-primary" data-action="upload-confirm-review">'+(multi?"ANALYZE ALL YEARS →":"ANALYZE COMPANY →")+'</button></div>'
+    + '</div>';
+}
+function bindUploadReviewEvents(){
+  var nameInput = document.getElementById("u_companyName");
+  if(nameInput) nameInput.addEventListener("input", function(){ state.upload.company.companyName = nameInput.value; clearFieldError("u_companyName"); });
+  appContainer.querySelectorAll(".upload-field-input").forEach(function(inp){
+    inp.addEventListener("input", function(){
+      var yk = inp.getAttribute("data-year-key"), fk = inp.getAttribute("data-field-key"), storeName = inp.getAttribute("data-store");
+      var bucket = state.upload.years[yk]; if(!bucket) return;
+      var raw = inp.value.trim();
+      bucket[storeName][fk] = raw==="" ? null : Number(raw.replace(/,/g,""));
+    });
+  });
+  appContainer.querySelectorAll(".u-year-label").forEach(function(inp){
+    inp.addEventListener("input", function(){
+      var yk = inp.getAttribute("data-year-key");
+      if(state.upload.years[yk]) state.upload.years[yk].displayLabel = inp.value;
+    });
+  });
+  appContainer.querySelectorAll("[data-year-tab]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      currentUploadTab = btn.getAttribute("data-year-tab");
+      appContainer.querySelectorAll(".year-tabs .year-tab").forEach(function(b){ b.classList.toggle("active", b===btn); });
+      appContainer.querySelectorAll(".year-review-panel").forEach(function(p){ p.classList.toggle("active", p.getAttribute("data-year-key")===currentUploadTab); });
+    });
+  });
+  appContainer.querySelectorAll("[data-remove-year]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var yk = btn.getAttribute("data-remove-year");
+      delete state.upload.years[yk];
+      var remaining = sortedUploadYearKeys();
+      if(remaining.length===0){ showToast("All years removed — upload data again."); uploadStep="setup"; renderStep(); return; }
+      currentUploadTab = remaining[0];
+      renderStep();
+    });
+  });
+}
+function confirmUploadReview(){
+  var nameInput = document.getElementById("u_companyName");
+  var name = (nameInput?nameInput.value:state.upload.company.companyName||"").trim();
+  state.upload.company.companyName = name;
+  if(!name){
+    var errEl = document.getElementById("err_u_companyName");
+    if(errEl){ errEl.textContent="Company Name is required."; errEl.classList.add("show"); }
+    if(nameInput){ nameInput.classList.add("invalid"); nameInput.scrollIntoView({behavior:"smooth", block:"center"}); }
+    return;
+  }
+  if(!state.upload.company.industry) state.upload.company.industry = "Other";
+  if(!state.upload.company.currency) state.upload.company.currency = "INR";
+  uploadStep = "results";
+  currentResultsTab = "trends";
+  renderStep();
+}
+function computeAllYearAnalyses(){
+  var cur = state.upload.company.currency;
+  return sortedUploadYearKeys().map(function(yk){
+    var b = state.upload.years[yk];
+    return {key:yk, label:b.displayLabel||yk, analysis:computeAnalysis(b.income, b.balance, cur, b.overrides)};
+  });
+}
+/* Cross-year trend metrics. Only ratios computed identically to the single-year engine (closing
+   balances, no averaging) are compared — this never introduces new opening/average-based ratios. */
+var TREND_RATIO_KEYS = ["currentRatio","quickRatio","debtToEquity","netProfitRatio","roe","roa","assetTurnover"];
+function computeTrends(entries){
+  var cur = state.upload.company.currency;
+  var rows = [];
+  rows.push({label:"Revenue", type:"currency", values: entries.map(function(e){ return e.analysis.derived.revenue; })});
+  rows.push({label:"Net Profit", type:"currency", values: entries.map(function(e){ return e.analysis.derived.netProfit; })});
+  rows.push({label:"Health Score", type:"score", values: entries.map(function(e){ return e.analysis.score.overall; })});
+  TREND_RATIO_KEYS.forEach(function(key){
+    var name = null, unit = "x";
+    entries.forEach(function(e){ var r = e.analysis.results.filter(function(x){ return x.key===key; })[0]; if(r){ name=r.name; unit=r.unit; } });
+    if(!name) return;
+    rows.push({label:name, type:"ratio", unit:unit, values: entries.map(function(e){ var r = e.analysis.results.filter(function(x){ return x.key===key; })[0]; return (r && r.available) ? r.value : null; })});
+  });
+
+  var insights = [];
+  var first = entries[0], last = entries[entries.length-1];
+  if(first.analysis.derived.revenue!=null && last.analysis.derived.revenue!=null && first.analysis.derived.revenue!==0){
+    var revChange = ((last.analysis.derived.revenue-first.analysis.derived.revenue)/Math.abs(first.analysis.derived.revenue))*100;
+    insights.push("Revenue "+(revChange>=0?"grew":"declined")+" "+Math.abs(revChange).toFixed(1)+"% from "+first.label+" to "+last.label+" ("+formatCurrency(first.analysis.derived.revenue,cur)+" → "+formatCurrency(last.analysis.derived.revenue,cur)+").");
+  }
+  var npFirst = first.analysis.results.filter(function(r){ return r.key==="netProfitRatio"; })[0];
+  var npLast = last.analysis.results.filter(function(r){ return r.key==="netProfitRatio"; })[0];
+  if(npFirst && npLast && npFirst.available && npLast.available){
+    var diff = npLast.value-npFirst.value;
+    insights.push("Net Profit Ratio moved from "+formatPercent(npFirst.value)+" ("+first.label+") to "+formatPercent(npLast.value)+" ("+last.label+"), "+(diff>=0?"an improvement":"a decline")+" of "+Math.abs(diff).toFixed(1)+" percentage points.");
+  }
+  var scoreFirst = first.analysis.score.overall, scoreLast = last.analysis.score.overall;
+  if(scoreFirst!=null && scoreLast!=null){
+    insights.push("The overall Financial Health Score moved from "+scoreFirst+"/100 in "+first.label+" to "+scoreLast+"/100 in "+last.label+".");
+  }
+  entries.forEach(function(e){ e.analysis.results.forEach(function(r){ /* no-op placeholder to keep results referenced */ }); });
+  // Flag any tracked ratio that flipped status between the first and last available year.
+  TREND_RATIO_KEYS.forEach(function(key){
+    var rf = first.analysis.results.filter(function(x){ return x.key===key; })[0];
+    var rl = last.analysis.results.filter(function(x){ return x.key===key; })[0];
+    if(rf && rl && rf.available && rl.available && rf.status!==rl.status){
+      insights.push(rl.name+" moved from "+rf.status+" ("+first.label+") to "+rl.status+" ("+last.label+") — worth a closer look.");
+    }
+  });
+  if(insights.length===0) insights.push("Not enough matching data across years to calculate a trend — fill in more figures on the review screen for a fuller comparison.");
+  return {rows:rows, insights:insights};
+}
+function trendCellValue(row, idx){
+  var v = row.values[idx];
+  if(v===null||v===undefined) return "—";
+  if(row.type==="currency") return formatCurrency(v, state.upload.company.currency);
+  if(row.type==="score") return v+"/100";
+  return formatNumber(v,2)+(row.unit==="%"?"%":row.unit==="x"?"x":"");
+}
+function trendChangeBadge(row, idx){
+  if(idx===0) return "";
+  var prev = row.values[idx-1], cur = row.values[idx];
+  if(prev===null||prev===undefined||cur===null||cur===undefined||prev===0) return "";
+  var pct = ((cur-prev)/Math.abs(prev))*100;
+  var dir = pct>0.05?"up":pct<-0.05?"down":"flat";
+  var arrow = dir==="up"?"▲":dir==="down"?"▼":"■";
+  return '<span class="trend-change '+dir+'">'+arrow+" "+Math.abs(pct).toFixed(1)+"%</span>";
+}
+function renderTrendsPanel(entries, cur){
+  var trends = computeTrends(entries);
+  var scoreRows = entries.map(function(e){
+    var s = e.analysis.score.overall;
+    var status = s===null?null:(s>=80?"healthy":s>=55?"warning":"critical");
+    return '<div class="score-trend-row"><span class="stlabel">'+esc(e.label)+'</span><div class="stbar-track"><div class="stbar-fill" style="width:'+(s||0)+'%; background:'+(status?statusColorVar(status):"var(--border)")+'"></div></div><span class="stval" style="color:'+(status?statusColorVar(status):"var(--ink-faint)")+'">'+(s!==null?s:"—")+'</span></div>';
+  }).join("");
+  var tableHtml = '<div class="trend-table-wrap"><table class="trend-table"><thead><tr><th>Metric</th>'
+    + entries.map(function(e){ return '<th>'+esc(e.label)+'</th>'; }).join("")
+    + '</tr></thead><tbody>'
+    + trends.rows.map(function(row){
+        return '<tr><td>'+esc(row.label)+'</td>'+row.values.map(function(v,idx){ return '<td>'+trendCellValue(row,idx)+trendChangeBadge(row,idx)+'</td>'; }).join("")+'</tr>';
+      }).join("")
+    + '</tbody></table></div>';
+  return '<div class="container" style="padding:0 24px 40px;">'
+    + '<div class="section-head" style="max-width:none; margin-bottom:28px;"><span class="section-eyebrow">Across '+entries.length+' years</span><h2>Trends &amp; Year-on-Year Insights</h2><p>How the Financial Health Score and key ratios have moved across the years you uploaded.</p></div>'
+    + '<div style="margin-bottom:34px;">'+scoreRows+'</div>'
+    + tableHtml
+    + '<div class="diagnosis-block"><span class="diagnosis-eyebrow">VR Financial Insight — Year-on-Year</span><h2 class="diagnosis-headline" style="font-size:20px;">What changed across the years</h2>'
+    + '<ul style="margin:0; padding-left:20px; color:var(--ink-muted); font-size:14px; line-height:1.75;">'+trends.insights.map(function(s){ return '<li>'+esc(s)+'</li>'; }).join("")+'</ul></div>'
+    + '</div>';
+}
+function renderUploadResults(){
+  var cur = state.upload.company.currency;
+  var entries = computeAllYearAnalyses();
+  state.upload.resultEntries = entries;
+  if(entries.length===0) return '<div class="form-card"><p>No years available to analyze.</p></div>';
+  if(entries.length===1){
+    var e = entries[0];
+    return '<div class="container" style="padding-top:52px; padding-bottom:0;"><h2 style="margin-bottom:24px;">'+esc(state.upload.company.companyName)+' — '+esc(e.label)+'</h2></div>'
+      + renderResultsBody(e.analysis, cur, "", false, true);
+  }
+  var tabsHtml = '<div class="results-year-tabs"><div class="year-tabs" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">'
+    + '<button type="button" class="year-tab'+(currentResultsTab==="trends"?" active":"")+'" data-results-tab="trends">📈 Trends &amp; YoY</button>'
+    + entries.map(function(e){ return '<button type="button" class="year-tab'+(currentResultsTab===e.key?" active":"")+'" data-results-tab="'+esc(e.key)+'">'+esc(e.label)+'</button>'; }).join("")
+    + '</div></div>';
+  var trendPanel = '<div class="results-tab-panel'+(currentResultsTab==="trends"?" active":"")+'" data-results-panel="trends">'+renderTrendsPanel(entries, cur)+'</div>';
+  var yearPanels = entries.map(function(e){
+    return '<div class="results-tab-panel'+(currentResultsTab===e.key?" active":"")+'" data-results-panel="'+esc(e.key)+'">'+renderResultsBody(e.analysis, cur, "_"+sanitizeKey(e.key), false, false)+'</div>';
+  }).join("");
+  return '<div class="container" style="padding:52px 24px 0;"><h2 style="margin-bottom:6px;">'+esc(state.upload.company.companyName)+' — Multi-Year Analysis</h2><p style="color:var(--ink-muted); margin-bottom:8px;">'+entries.length+' financial years analyzed: '+entries.map(function(e){ return esc(e.label); }).join(", ")+'.</p></div>'
+    + tabsHtml
+    + trendPanel
+    + yearPanels
+    + '<div class="results-footer-actions" style="margin-top:10px;"><button class="btn btn-secondary" data-action="restart">↺ Reset Analysis</button><button class="btn btn-primary" data-action="open-connect">Have questions? Connect / Query →</button></div>';
+}
+function bindUploadResultsEvents(){
+  appContainer.querySelectorAll("[data-results-tab]").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      currentResultsTab = btn.getAttribute("data-results-tab");
+      appContainer.querySelectorAll(".results-year-tabs .year-tab").forEach(function(b){ b.classList.toggle("active", b===btn); });
+      appContainer.querySelectorAll(".results-tab-panel").forEach(function(p){ p.classList.toggle("active", p.getAttribute("data-results-panel")===currentResultsTab); });
+    });
+  });
+  bindResultsInteractions();
+}
+
 function statusColorVar(status){ return {healthy:"var(--healthy)", warning:"var(--warning)", critical:"var(--critical)"}[status] || "var(--ink-faint)"; }
 function coverageRing(percent){
   var r=28, c=2*Math.PI*r, offset=c-(percent/100)*c;
   return '<div class="coverage-ring"><svg width="70" height="70" viewBox="0 0 68 68"><circle cx="34" cy="34" r="'+r+'" stroke="var(--border)" stroke-width="6" fill="none"/><circle cx="34" cy="34" r="'+r+'" stroke="url(#ringGrad)" stroke-width="6" fill="none" stroke-dasharray="'+c+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c4dff"/><stop offset="1" stop-color="#00e5ff"/></linearGradient></defs></svg><div class="pct">'+percent+'%</div></div>';
 }
 var INCOME_DERIVED_KEYS = {revenue:1,cogs:1,operatingExpenses:1,interestExpense:1,taxExpense:1,grossProfit:1,operatingProfit:1,ebit:1,profitBeforeTax:1,netProfit:1};
-function ratioCard(r){
+function ratioCard(r, idSuffix, allowJumpToInputs){
+  idSuffix = idSuffix||""; if(allowJumpToInputs===undefined) allowJumpToInputs=true;
   if(!r.available){
     var missingLabel = (r.missing && r.missing.length) ? "the required underlying figures" : "a required value (denominator was zero)";
     var targetsIncome = (r.missing||[]).some(function(k){ return INCOME_DERIVED_KEYS[k]; });
     var targetAction = targetsIncome ? "goto-income" : "goto-balance";
     return '<div class="ratio-card status-unavailable"><div class="ratio-card-head"><span class="ratio-name">'+r.name+'</span><span class="status-badge unavailable">Data unavailable</span></div>'
       + '<p class="ratio-unavailable-msg">This ratio could not be calculated accurately because '+missingLabel+' '+((r.missing&&r.missing.length)?"were":"was")+' not provided.</p>'
-      + '<button class="btn btn-ghost btn-sm add-missing-btn" data-action="'+targetAction+'">+ Add Missing Information</button></div>';
+      + (allowJumpToInputs?('<button class="btn btn-ghost btn-sm add-missing-btn" data-action="'+targetAction+'">+ Add Missing Information</button>'):'')
+      + '</div>';
   }
   var statusIcon = r.status==="healthy"?"🟢 Healthy":r.status==="warning"?"🟡 Warning":"🔴 Critical";
   return '<div class="ratio-card status-'+r.status+'" data-ratio="'+r.key+'"><div class="ratio-card-head"><span class="ratio-name">'+r.name+'</span><span class="status-badge '+r.status+'">'+statusIcon+'</span></div>'
     + '<div class="ratio-value" style="color:'+statusColorVar(r.status)+'">'+r.formattedValue+'</div>'
     + '<p class="ratio-interpretation">'+r.interpretation+'</p>'
-    + '<div class="ratio-actions"><button class="ratio-toggle" data-toggle="formula-'+r.key+'">See Formula</button><button class="ratio-toggle" data-toggle="why-'+r.key+'">Why It Matters</button><button class="ratio-toggle" data-toggle="improve-'+r.key+'">How To Improve</button></div>'
-    + '<div class="ratio-panel" id="formula-'+r.key+'"><div class="panel-label">Formula</div><div class="panel-formula">'+r.name+' = '+r.formula+'</div><div class="panel-label">Your Calculation</div><div class="panel-calc">'+r.calculationDisplay+' = '+r.formattedValue+'</div></div>'
-    + '<div class="ratio-panel" id="why-'+r.key+'"><p>'+r.whyItMatters+'</p></div>'
-    + '<div class="ratio-panel" id="improve-'+r.key+'"><p>'+r.recommendation+'</p></div></div>';
+    + '<div class="ratio-actions"><button class="ratio-toggle" data-toggle="formula-'+r.key+idSuffix+'">See Formula</button><button class="ratio-toggle" data-toggle="why-'+r.key+idSuffix+'">Why It Matters</button><button class="ratio-toggle" data-toggle="improve-'+r.key+idSuffix+'">How To Improve</button></div>'
+    + '<div class="ratio-panel" id="formula-'+r.key+idSuffix+'"><div class="panel-label">Formula</div><div class="panel-formula">'+r.name+' = '+r.formula+'</div><div class="panel-label">Your Calculation</div><div class="panel-calc">'+r.calculationDisplay+' = '+r.formattedValue+'</div></div>'
+    + '<div class="ratio-panel" id="why-'+r.key+idSuffix+'"><p>'+r.whyItMatters+'</p></div>'
+    + '<div class="ratio-panel" id="improve-'+r.key+idSuffix+'"><p>'+r.recommendation+'</p></div></div>';
 }
 function renderPriorityBlock(label, level, items){
   if(!items.length) return "";
@@ -1122,23 +1674,31 @@ function renderPriorityBlock(label, level, items){
     + items.map(function(it){ return '<div class="action-card"><div class="problem">'+esc(it.problem)+'</div><div class="why">'+esc(it.why)+'</div><div class="action"><b>Action:</b> '+esc(it.action)+'</div></div>'; }).join("")
     + '</div>';
 }
-function renderResults(){
-  var cur = state.company.currency;
-  var derived = deriveFinancials(state.income, state.balance);
+function computeAnalysis(income, balance, cur, overrides){
+  var derived = deriveFinancials(income, balance, overrides);
   var results = evaluateRatios(derived, cur);
   var findings = runCrossRatioDiagnostics(results);
   var score = computeHealthScore(results);
   var coverage = computeCoverage(results);
   var diagnosis = buildFinalDiagnosis(results, score, findings);
   var plan = buildActionPlan(results, findings);
-  state.results = {derived:derived, results:results, findings:findings, score:score, coverage:coverage, diagnosis:diagnosis, plan:plan};
+  return {derived:derived, results:results, findings:findings, score:score, coverage:coverage, diagnosis:diagnosis, plan:plan};
+}
+// Renders the full score/category/diagnosis/action-plan body for one analysis result.
+// idSuffix keeps DOM ids unique when several of these are rendered on the page at once (multi-year tabs).
+// allowJumpToInputs controls whether "unavailable" ratio cards show a button that jumps back to the
+// Manual Entry income/balance steps (only meaningful for the Manual Entry flow).
+// includeFooter controls whether the Reset/Connect buttons are rendered at the end of this block.
+function renderResultsBody(analysis, cur, idSuffix, allowJumpToInputs, includeFooter){
+  idSuffix = idSuffix||""; if(allowJumpToInputs===undefined) allowJumpToInputs=true; if(includeFooter===undefined) includeFooter=true;
+  var results = analysis.results, findings = analysis.findings, score = analysis.score, coverage = analysis.coverage, diagnosis = analysis.diagnosis, plan = analysis.plan;
 
   var categories = ["liquidity","solvency","profitability","efficiency"];
   var categorySections = categories.map(function(cat){
     var catResults = results.filter(function(r){ return r.category===cat; });
     var catScore = score.breakdown[cat];
     return '<div class="category-section"><div class="category-header"><h3>'+CATEGORY_LABELS[cat]+'</h3><span class="cat-meta">'+catScore.ratiosUsed+' of '+catResults.length+' indicators evaluated'+(catScore.score!==null?(' · Score '+catScore.score+'/100'):'')+'</span></div>'
-      + '<div class="ratio-grid">'+catResults.map(ratioCard).join("")+'</div></div>';
+      + '<div class="ratio-grid">'+catResults.map(function(r){ return ratioCard(r, idSuffix, allowJumpToInputs); }).join("")+'</div></div>';
   }).join("");
 
   var scoreVerdict = score.overall===null?null:(score.overall>=80?"healthy":score.overall>=55?"warning":"critical");
@@ -1148,8 +1708,8 @@ function renderResults(){
     + '<div class="score-hero"><div class="score-card-main"><span class="score-label">Financial Health Score</span>'
     + '<div class="score-big" style="color:'+(scoreVerdict?statusColorVar(scoreVerdict):"var(--ink-faint)")+'">'+(score.overall!==null?score.overall:"—")+'<span class="score-max">/100</span></div>'
     + (scoreVerdict?('<span class="score-verdict-chip status-badge '+scoreVerdict+'">'+(scoreVerdict==="healthy"?"Healthy":scoreVerdict==="warning"?"Needs Attention":"Critical")+'</span>'):'')
-    + '<a class="methodology-link" data-toggle="methodology-panel">How is this score calculated?</a>'
-    + '<div class="ratio-panel" id="methodology-panel" style="text-align:left; width:100%;"><p>Each category score is the average of its available ratios\' status (Healthy = 100, Warning = 60, Critical = 20). The overall score weights Profitability 30%, Liquidity 25%, Solvency 25%, and Efficiency 20%, using only categories with at least one calculable ratio. This is an analytical guideline, not an official credit rating.</p></div>'
+    + '<a class="methodology-link" data-toggle="methodology-panel'+idSuffix+'">How is this score calculated?</a>'
+    + '<div class="ratio-panel" id="methodology-panel'+idSuffix+'" style="text-align:left; width:100%;"><p>Each category score is the average of its available ratios\' status (Healthy = 100, Warning = 60, Critical = 20). The overall score weights Profitability 30%, Liquidity 25%, Solvency 25%, and Efficiency 20%, using only categories with at least one calculable ratio. This is an analytical guideline, not an official credit rating.</p></div>'
     + '</div><div class="category-breakdown">'
     + categories.map(function(cat){
         var c = score.breakdown[cat];
@@ -1171,9 +1731,15 @@ function renderResults(){
     + '<div class="action-plan"><div class="section-head" style="margin-bottom:26px;"><span class="section-eyebrow">Next steps</span><h2>Recommended Actions</h2></div>'
     + renderPriorityBlock("01 — High Priority","high",plan.high) + renderPriorityBlock("02 — Medium Priority","medium",plan.medium) + renderPriorityBlock("03 — Low Priority / Maintain","low",plan.low)
     + '</div>'
-    + '<div class="results-footer-actions"><button class="btn btn-secondary" data-action="restart">↺ Reset Analysis</button><button class="btn btn-primary" data-action="open-connect">Have questions? Connect / Query →</button></div>'
+    + (includeFooter?('<div class="results-footer-actions"><button class="btn btn-secondary" data-action="restart">↺ Reset Analysis</button><button class="btn btn-primary" data-action="open-connect">Have questions? Connect / Query →</button></div>'):'')
     + '</div>';
   return html;
+}
+function renderResults(){
+  var cur = state.company.currency;
+  var analysis = computeAnalysis(state.income, state.balance, cur);
+  state.results = analysis;
+  return renderResultsBody(analysis, cur, "", true, true);
 }
 
 /* ============================ CONTACT MODAL ============================ */
@@ -1222,6 +1788,12 @@ function currentValuesStore(){
 }
 function renderStep(){
   state.screen = "app";
+  if(state.mode==="mode-select"){ appContainer.innerHTML = renderModeSelect(); showApp(); return; }
+  if(state.mode==="upload"){
+    if(uploadStep==="setup"){ appContainer.innerHTML = renderUploadSetup(); showApp(); bindUploadSetupEvents(); return; }
+    if(uploadStep==="review"){ appContainer.innerHTML = renderUploadReview(); showApp(); bindUploadReviewEvents(); return; }
+    if(uploadStep==="results"){ appContainer.innerHTML = renderUploadResults(); showApp(); bindUploadResultsEvents(); return; }
+  }
   if(stepIndex===1) appContainer.innerHTML = renderCompanyStep();
   else if(stepIndex===2) appContainer.innerHTML = renderIncomeStep();
   else if(stepIndex===3) appContainer.innerHTML = renderBalanceStep();
@@ -1280,7 +1852,10 @@ function goNext(){
   stepIndex += 1; renderStep();
 }
 function goPrev(){ stepIndex = Math.max(1, stepIndex-1); renderStep(); }
-function startAnalysis(){ stepIndex = 1; renderStep(); }
+function startAnalysis(){ state.mode = "mode-select"; renderStep(); }
+function startManualFlow(){ state.mode = "manual"; stepIndex = 1; renderStep(); }
+function startUploadFlow(){ state.mode = "upload"; uploadStep = "setup"; renderStep(); }
+function backToModeSelect(){ state.mode = "mode-select"; renderStep(); }
 function restart(){ resetAnalysis(); stepIndex = 1; showLanding(); }
 
 function bindResultsInteractions(){
@@ -1301,7 +1876,10 @@ function bindResultsInteractions(){
 }
 
 /* ---------------- Custom dropdown behavior (shared by all cs-trigger/cs-panel pairs) ---------------- */
-var CS_STORE_MAP = {f_industry:{obj:function(){return state.company;}, key:"industry"}, f_currency:{obj:function(){return state.company;}, key:"currency"}};
+var CS_STORE_MAP = {
+  f_industry:{obj:function(){return state.company;}, key:"industry"}, f_currency:{obj:function(){return state.company;}, key:"currency"},
+  u_industry:{obj:function(){return state.upload.company;}, key:"industry"}, u_currency:{obj:function(){return state.upload.company;}, key:"currency"}
+};
 function closeAllCsPanels(){
   document.querySelectorAll(".cs-panel.open").forEach(function(p){ p.classList.remove("open"); });
   document.querySelectorAll(".cs-trigger.open").forEach(function(t){ t.classList.remove("open"); });
@@ -1345,6 +1923,7 @@ document.addEventListener("click", function(e){
       var mapping = CS_STORE_MAP[targetId];
       if(mapping) mapping.obj()[mapping.key] = val;
       updateSnapshot();
+      if(targetId==="u_currency" && state.mode==="upload" && uploadStep==="review"){ renderStep(); }
     }
     closeAllCsPanels();
     return;
@@ -1373,6 +1952,12 @@ document.body.addEventListener("click", function(e){
     case "goto-income": stepIndex=2; renderStep(); break;
     case "open-connect": e.preventDefault(); openConnectModal(); break;
     case "close-connect": closeConnectModal(); break;
+    case "choose-manual": startManualFlow(); break;
+    case "choose-upload": startUploadFlow(); break;
+    case "back-mode-select": backToModeSelect(); break;
+    case "upload-run-extraction": runExtraction(); break;
+    case "upload-back-setup": uploadStep="setup"; renderStep(); break;
+    case "upload-confirm-review": confirmUploadReview(); break;
     default: break;
   }
 });
