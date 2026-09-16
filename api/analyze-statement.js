@@ -1,14 +1,18 @@
 // api/analyze-statement.js
 //
-// Vercel Serverless Function.
-// Receives one financial-statement page image from the browser,
-// sends it to Google Gemini using a server-side secret (GEMINI_API_KEY),
-// and returns the extracted JSON back to the browser.
+// Vercel Serverless Function for VR FinSight.
+// Receives one financial-statement PAGE image from the browser,
+// sends it to Google's Gemini API using the server-side secret
+// GEMINI_API_KEY, and returns the extracted JSON.
 //
-// NEVER hardcode the API key here.
-// Set GEMINI_API_KEY in Vercel Environment Variables.
+// IMPORTANT:
+// The API key is stored only in Vercel Environment Variables.
+// Never put the API key in this file, GitHub, or the frontend.
+//
+// Vercel Environment Variable:
+// GEMINI_API_KEY
 
-var VISION_MODEL = "gemini-2.5-flash";
+var VISION_MODEL = "gemini-3.6-flash";
 
 var EXTRACTION_PROMPT = [
   "You are a meticulous financial data transcription assistant. You will be shown ONE PAGE of a",
@@ -49,12 +53,16 @@ var EXTRACTION_PROMPT = [
   "  If the unit is ambiguous, transcribe the number as printed and do not guess the multiplier.",
   "- If a line item is not present on this specific page, its value is null.",
   "- Do not compute subtotals yourself.",
-  "- Only use figures printed as a distinct line.",
+  "  For example, do not add individual expense lines to invent \"operatingExpenses\"",
+  "  if it is not printed as a single line.",
+  "- Only use figures printed as a distinct line on the page.",
   "- Negative values (losses) should be negative numbers.",
   "- Return ONLY the JSON object, nothing else."
 ].join("\n");
 
 var ALLOWED_MIME = /^image\/(png|jpe?g|webp|gif)$/i;
+
+// ~11 MB of raw image data.
 var MAX_BASE64_LENGTH = 15000000;
 
 module.exports = async function handler(req, res) {
@@ -64,13 +72,13 @@ module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // OPTIONS request
+  // Handle browser preflight request
   if (req.method === "OPTIONS") {
     res.status(204).end();
     return;
   }
 
-  // Only POST allowed
+  // Only POST is allowed
   if (req.method !== "POST") {
     res.status(405).json({
       error: "Method not allowed. Use POST."
@@ -78,7 +86,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // Gemini API key from Vercel environment variable
+  // Read Gemini API key from Vercel Environment Variables
   var apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -88,6 +96,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // Read request body
   var body = req.body;
 
   if (typeof body === "string") {
@@ -119,7 +128,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  // Validate image size
+  // Prevent excessively large requests
   if (base64Data.length > MAX_BASE64_LENGTH) {
     res.status(413).json({
       error: "Image is too large."
@@ -129,51 +138,58 @@ module.exports = async function handler(req, res) {
 
   try {
 
-    // Call Google Gemini API
+    // Call Gemini Generate Content API
     var geminiResp = await fetch(
       "https://generativelanguage.googleapis.com/v1beta/models/" +
       VISION_MODEL +
-      ":generateContent?key=" +
-      encodeURIComponent(apiKey),
+      ":generateContent",
       {
         method: "POST",
 
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
         },
 
         body: JSON.stringify({
+
           contents: [
             {
               parts: [
+
+                // Financial statement image
                 {
                   inline_data: {
                     mime_type: mimeType,
                     data: base64Data
                   }
                 },
+
+                // Extraction instructions
                 {
                   text: EXTRACTION_PROMPT
                 }
+
               ]
             }
           ],
 
           generationConfig: {
             temperature: 0,
-            maxOutputTokens: 1500,
             responseMimeType: "application/json"
           }
+
         })
       }
     );
 
-    // Gemini API error
+    // Handle Gemini API errors
     if (!geminiResp.ok) {
 
       var errText = geminiResp.statusText;
 
       try {
+
         var errJson = await geminiResp.json();
 
         if (
@@ -186,7 +202,6 @@ module.exports = async function handler(req, res) {
 
       } catch (e) {}
 
-      // Never expose the API key
       res.status(geminiResp.status).json({
         error: "Gemini API error: " + errText
       });
@@ -194,7 +209,7 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // Parse Gemini response
+    // Read Gemini response
     var data = await geminiResp.json();
 
     var textBlock = "";
@@ -219,19 +234,18 @@ module.exports = async function handler(req, res) {
 
     if (!textBlock) {
       res.status(502).json({
-        error: "Gemini returned no extraction result for this page."
+        error: "Gemini returned no readable extraction result."
       });
-
       return;
     }
 
-    // Clean possible markdown fences just in case
+    // Clean possible markdown fences
     var cleaned = textBlock
       .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
 
-    // Extract JSON object
+    // Extract JSON object if Gemini included extra text
     var firstBrace = cleaned.indexOf("{");
     var lastBrace = cleaned.lastIndexOf("}");
 
@@ -245,20 +259,23 @@ module.exports = async function handler(req, res) {
       );
     }
 
+    // Parse JSON
     var parsed;
 
     try {
+
       parsed = JSON.parse(cleaned);
+
     } catch (e) {
 
       res.status(502).json({
-        error: "Could not parse the Gemini extraction result for this page."
+        error: "Could not parse the extraction result for this page."
       });
 
       return;
     }
 
-    // Return exactly the structure expected by index.html
+    // Return extracted financial data to frontend
     res.status(200).json(parsed);
 
   } catch (err) {
@@ -267,7 +284,8 @@ module.exports = async function handler(req, res) {
       error:
         "Extraction failed: " +
         (
-          err && err.message
+          err &&
+          err.message
             ? err.message
             : "unknown error"
         )
