@@ -434,6 +434,21 @@ footer{border-top:1px solid var(--border); padding:60px 0 34px; margin-top:40px;
 .trend-change.up{color:var(--healthy);}
 .trend-change.down{color:var(--critical);}
 .trend-change.flat{color:var(--ink-faint);}
+.trend-change .abs{color:var(--ink-faint); margin-left:3px;}
+.trend-cell-na{color:var(--ink-faint); font-style:italic;}
+.trend-chip{display:inline-block; font-family:var(--font-m); font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:100px; margin-left:10px; text-transform:uppercase; vertical-align:middle;}
+.trend-chip.trend-improving{background:var(--healthy-soft); color:var(--healthy);}
+.trend-chip.trend-declining{background:var(--critical-soft); color:var(--critical);}
+.trend-chip.trend-stable{background:rgba(255,255,255,0.06); color:var(--ink-muted);}
+.trend-chart-card{background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px 24px 8px; margin-bottom:34px;}
+.trend-chart-head{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:6px;}
+.trend-chart-head h3{font-size:15px; margin:0;}
+.trend-select{background:rgba(255,255,255,0.03); border:1px solid var(--border); color:var(--ink); font-family:var(--font-m); font-size:12.5px; padding:9px 14px; border-radius:10px; cursor:pointer;}
+.trend-select:focus{border-color:var(--v2); outline:none;}
+.trend-chart-title-row{display:flex; align-items:center; margin:10px 0 6px;}
+.trend-chart-metric-name{font-family:var(--font-m); font-size:12.5px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.04em;}
+.trend-line-svg{width:100%; height:auto; display:block;}
+.trend-chart-empty{padding:40px 10px; text-align:center; color:var(--ink-faint); font-size:13.5px;}
 .score-trend-row{display:flex; align-items:center; gap:14px; margin-bottom:12px;}
 .score-trend-row .stlabel{width:110px; flex-shrink:0; font-size:12.5px; color:var(--ink-muted);}
 .score-trend-row .stbar-track{flex:1; height:10px; background:var(--border); border-radius:100px; overflow:hidden; position:relative;}
@@ -628,7 +643,7 @@ var INDUSTRIES = ["Manufacturing","Retail","IT / Technology","Healthcare","Banki
 
 /* ============================ IMAGE UPLOAD CONFIG ============================ */
 // Statement images are analyzed by a Vercel Serverless Function (/api/analyze-statement),
-// which holds the Anthropic API key server-side. The browser never sees the key — it just
+// which holds the vision-model API key server-side. The browser never sees the key — it just
 // posts the image to this same-origin endpoint. See /api/analyze-statement.js.
 var ANALYZE_ENDPOINT = "/api/analyze-statement";
 
@@ -1285,8 +1300,8 @@ function ingestExtraction(fileMeta, extracted){
   return yearKey;
 }
 // Sends one statement-page image to our own backend (/api/analyze-statement), which holds the
-// Anthropic API key server-side. No key ever touches the browser.
-async function callAnthropicVision(base64Data, mimeType){
+// vision-model API key server-side. No key ever touches the browser.
+async function callVisionExtraction(base64Data, mimeType){
   var resp = await fetch(ANALYZE_ENDPOINT, {
     method:"POST",
     headers:{ "content-type":"application/json" },
@@ -1328,7 +1343,7 @@ async function runExtraction(){
     fmeta.status="processing"; fmeta.error=null;
     updateUploadFileRow(fmeta);
     try{
-      var extracted = await callAnthropicVision(fmeta.base64, fmeta.mimeType);
+      var extracted = await callVisionExtraction(fmeta.base64, fmeta.mimeType);
       fmeta.extracted = extracted;
       fmeta.status="done";
       ingestExtraction(fmeta, extracted);
@@ -1526,19 +1541,63 @@ function computeAllYearAnalyses(){
   });
 }
 /* Cross-year trend metrics. Only ratios computed identically to the single-year engine (closing
-   balances, no averaging) are compared — this never introduces new opening/average-based ratios. */
-var TREND_RATIO_KEYS = ["currentRatio","quickRatio","debtToEquity","netProfitRatio","roe","roa","assetTurnover"];
+   balances, no averaging) are compared — this never introduces new opening/average-based ratios,
+   and every one of the 17 ratios (in the same order/definitions as RATIOS) is included. */
+var STATUS_RANK = {healthy:3, warning:2, critical:1};
+function scoreStatus(v){ return v===null||v===undefined?null:(v>=80?"healthy":v>=55?"warning":"critical"); }
+// Improving/Declining/Stable from the *existing* status thresholds (no new thresholds invented):
+// compares the status of the first year that had a value to the status of the last.
+function classifyTrendByStatus(statuses){
+  var known = statuses.filter(function(s){ return s; });
+  if(known.length<2) return null;
+  var firstRank = STATUS_RANK[known[0]], lastRank = STATUS_RANK[known[known.length-1]];
+  if(lastRank>firstRank) return "Improving";
+  if(lastRank<firstRank) return "Declining";
+  return "Stable";
+}
+// For plain amounts (Revenue, Net Profit) that have no healthy/warning/critical status of their
+// own: a simple magnitude-based direction between the first and last available year.
+function classifyTrendByMagnitude(values){
+  var known = values.filter(function(v){ return v!==null && v!==undefined; });
+  if(known.length<2) return null;
+  var first = known[0], last = known[known.length-1];
+  if(first===0) return last>0?"Improving":(last<0?"Declining":"Stable");
+  var pct = ((last-first)/Math.abs(first))*100;
+  if(pct>3) return "Improving";
+  if(pct<-3) return "Declining";
+  return "Stable";
+}
 function computeTrends(entries){
   var cur = state.upload.company.currency;
   var rows = [];
-  rows.push({label:"Revenue", type:"currency", values: entries.map(function(e){ return e.analysis.derived.revenue; })});
-  rows.push({label:"Net Profit", type:"currency", values: entries.map(function(e){ return e.analysis.derived.netProfit; })});
-  rows.push({label:"Health Score", type:"score", values: entries.map(function(e){ return e.analysis.score.overall; })});
-  TREND_RATIO_KEYS.forEach(function(key){
-    var name = null, unit = "x";
-    entries.forEach(function(e){ var r = e.analysis.results.filter(function(x){ return x.key===key; })[0]; if(r){ name=r.name; unit=r.unit; } });
-    if(!name) return;
-    rows.push({label:name, type:"ratio", unit:unit, values: entries.map(function(e){ var r = e.analysis.results.filter(function(x){ return x.key===key; })[0]; return (r && r.available) ? r.value : null; })});
+  var labels = entries.map(function(e){ return e.label; });
+
+  var scoreValues = entries.map(function(e){ return e.analysis.score.overall; });
+  rows.push({key:"__score__", label:"Financial Health Score", type:"score", unit:null,
+    values: scoreValues, trend: classifyTrendByStatus(scoreValues.map(scoreStatus))});
+
+  var revenueValues = entries.map(function(e){ return e.analysis.derived.revenue; });
+  rows.push({key:"__revenue__", label:"Revenue", type:"currency", unit:null,
+    values: revenueValues, trend: classifyTrendByMagnitude(revenueValues)});
+
+  var netProfitValues = entries.map(function(e){ return e.analysis.derived.netProfit; });
+  rows.push({key:"__netProfit__", label:"Net Profit", type:"currency", unit:null,
+    values: netProfitValues, trend: classifyTrendByMagnitude(netProfitValues)});
+
+  // Every one of the 17 ratios, using the existing RATIOS definitions/order — nothing duplicated.
+  RATIOS.forEach(function(ratioDef){
+    var name=null, unit="x";
+    var values = entries.map(function(e){
+      var r = e.analysis.results.filter(function(x){ return x.key===ratioDef.key; })[0];
+      if(r){ name=r.name; unit=r.unit; }
+      return (r && r.available) ? r.value : null;
+    });
+    var statuses = entries.map(function(e){
+      var r = e.analysis.results.filter(function(x){ return x.key===ratioDef.key; })[0];
+      return (r && r.available) ? r.status : null;
+    });
+    rows.push({key:ratioDef.key, label:name||ratioDef.name, type:"ratio", unit:unit, category:ratioDef.category,
+      values: values, trend: classifyTrendByStatus(statuses)});
   });
 
   var insights = [];
@@ -1557,51 +1616,135 @@ function computeTrends(entries){
   if(scoreFirst!=null && scoreLast!=null){
     insights.push("The overall Financial Health Score moved from "+scoreFirst+"/100 in "+first.label+" to "+scoreLast+"/100 in "+last.label+".");
   }
-  entries.forEach(function(e){ e.analysis.results.forEach(function(r){ /* no-op placeholder to keep results referenced */ }); });
-  // Flag any tracked ratio that flipped status between the first and last available year.
-  TREND_RATIO_KEYS.forEach(function(key){
-    var rf = first.analysis.results.filter(function(x){ return x.key===key; })[0];
-    var rl = last.analysis.results.filter(function(x){ return x.key===key; })[0];
+  // Flag any of the 17 ratios that flipped status between the first and last available year.
+  rows.forEach(function(row){
+    if(row.type!=="ratio") return;
+    var rf = first.analysis.results.filter(function(x){ return x.key===row.key; })[0];
+    var rl = last.analysis.results.filter(function(x){ return x.key===row.key; })[0];
     if(rf && rl && rf.available && rl.available && rf.status!==rl.status){
       insights.push(rl.name+" moved from "+rf.status+" ("+first.label+") to "+rl.status+" ("+last.label+") — worth a closer look.");
     }
   });
   if(insights.length===0) insights.push("Not enough matching data across years to calculate a trend — fill in more figures on the review screen for a fuller comparison.");
-  return {rows:rows, insights:insights};
+  return {rows:rows, labels:labels, insights:insights};
 }
 function trendCellValue(row, idx){
   var v = row.values[idx];
-  if(v===null||v===undefined) return "—";
+  if(v===null||v===undefined) return '<span class="trend-cell-na">N/A</span>';
   if(row.type==="currency") return formatCurrency(v, state.upload.company.currency);
   if(row.type==="score") return v+"/100";
   return formatNumber(v,2)+(row.unit==="%"?"%":row.unit==="x"?"x":"");
 }
+// Shows BOTH the absolute change and the % change versus the previous year, per the requirement
+// that year-over-year comparisons include both.
 function trendChangeBadge(row, idx){
   if(idx===0) return "";
   var prev = row.values[idx-1], cur = row.values[idx];
-  if(prev===null||prev===undefined||cur===null||cur===undefined||prev===0) return "";
-  var pct = ((cur-prev)/Math.abs(prev))*100;
-  var dir = pct>0.05?"up":pct<-0.05?"down":"flat";
+  if(prev===null||prev===undefined||cur===null||cur===undefined) return "";
+  var absDiff = cur-prev;
+  var dir = absDiff>0.0005?"up":absDiff<-0.0005?"down":"flat";
   var arrow = dir==="up"?"▲":dir==="down"?"▼":"■";
-  return '<span class="trend-change '+dir+'">'+arrow+" "+Math.abs(pct).toFixed(1)+"%</span>";
+  var absText;
+  if(row.type==="currency") absText = (absDiff>=0?"+":"-")+formatCurrency(Math.abs(absDiff), state.upload.company.currency);
+  else if(row.type==="score") absText = (absDiff>=0?"+":"")+Math.round(absDiff)+" pts";
+  else absText = (absDiff>=0?"+":"")+formatNumber(absDiff,2)+(row.unit==="%"?"pp":row.unit==="x"?"x":"");
+  var pctText = "";
+  if(prev!==0){
+    var pct = (absDiff/Math.abs(prev))*100;
+    pctText = ' <span class="abs">('+(pct>=0?"+":"")+pct.toFixed(1)+"%)</span>";
+  }
+  return '<span class="trend-change '+dir+'">'+arrow+" "+absText+pctText+'</span>';
+}
+function trendChipHtml(trend){ return trend ? ('<span class="trend-chip trend-'+trend.toLowerCase()+'">'+trend+'</span>') : ""; }
+function chartAxisLabel(row, v){
+  if(row.type==="score") return String(Math.round(v));
+  if(row.type==="currency") return formatCurrency(v, state.upload.company.currency);
+  return formatNumber(v,1)+(row.unit==="%"?"%":row.unit==="x"?"x":"");
+}
+function chartPointLabel(row, v){
+  if(row.type==="score") return Math.round(v)+"/100";
+  if(row.type==="currency") return formatCurrency(v, state.upload.company.currency);
+  return formatNumber(v,2)+(row.unit==="%"?"%":row.unit==="x"?"x":"");
+}
+// Dependency-free inline SVG line chart — no external chart library required, keeps the page
+// fully self-contained. Null years are skipped (line breaks) and marked "N/A" rather than
+// interpolated, so missing data is never implied as zero or estimated.
+function buildLineChartSVG(labels, row){
+  var W=680, H=260, padL=54, padR=20, padT=20, padB=40;
+  var innerW=W-padL-padR, innerH=H-padT-padB;
+  var known = row.values.filter(function(v){ return v!==null && v!==undefined; });
+  if(known.length===0){
+    return '<div class="trend-chart-empty">No data available for "'+esc(row.label)+'" across the uploaded years.</div>';
+  }
+  var minV=Math.min.apply(null,known), maxV=Math.max.apply(null,known);
+  if(minV===maxV){ var pad0=(Math.abs(minV)*0.15)||1; minV-=pad0; maxV+=pad0; }
+  var range=maxV-minV, padRange=range*0.12;
+  minV-=padRange; maxV+=padRange; range=maxV-minV;
+  function xAt(i){ return padL + (labels.length<=1 ? innerW/2 : (i/(labels.length-1))*innerW); }
+  function yAt(v){ return padT + innerH - ((v-minV)/range)*innerH; }
+  var segments=[], current=[];
+  row.values.forEach(function(v,i){
+    if(v===null||v===undefined){ if(current.length){ segments.push(current); current=[]; } return; }
+    current.push([xAt(i), yAt(v)]);
+  });
+  if(current.length) segments.push(current);
+  var pathD = segments.map(function(seg){ return seg.map(function(p,i){ return (i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" "); }).join(" ");
+  var gridCount=4, gridLines="";
+  for(var g=0; g<=gridCount; g++){
+    var gv = minV + range*(g/gridCount);
+    var gy = yAt(gv);
+    gridLines += '<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+gy.toFixed(1)+'" stroke="var(--border)" stroke-width="1"/>';
+    gridLines += '<text x="'+(padL-8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="10.5" fill="var(--ink-faint)" font-family="var(--font-m)">'+esc(chartAxisLabel(row,gv))+'</text>';
+  }
+  var dots="";
+  row.values.forEach(function(v,i){
+    if(v===null||v===undefined){
+      dots += '<text x="'+xAt(i).toFixed(1)+'" y="'+(padT+innerH+16).toFixed(1)+'" text-anchor="middle" font-size="9.5" fill="var(--ink-faint)" font-family="var(--font-m)">N/A</text>';
+      return;
+    }
+    dots += '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(v).toFixed(1)+'" r="4.5" style="fill:var(--v2); stroke:#050611; stroke-width:1.5;"><title>'+esc(labels[i])+": "+esc(chartPointLabel(row,v))+'</title></circle>';
+  });
+  var xLabels = labels.map(function(l,i){ return '<text x="'+xAt(i).toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="var(--font-m)">'+esc(l)+'</text>'; }).join("");
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="trend-line-svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="'+esc(row.label)+' trend chart">'
+    + gridLines
+    + '<path d="'+pathD+'" fill="none" style="stroke:var(--v2);" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    + dots + xLabels + '</svg>';
+}
+function renderChartHolder(idx){
+  var holder = document.getElementById("trendChartHolder");
+  var titleRow = document.getElementById("trendChartTitleRow");
+  var trends = state.upload._trendsCache;
+  if(!holder || !trends || !trends.rows[idx]) return;
+  var row = trends.rows[idx];
+  holder.innerHTML = buildLineChartSVG(trends.labels, row);
+  if(titleRow) titleRow.innerHTML = '<span class="trend-chart-metric-name">'+esc(row.label)+'</span>'+trendChipHtml(row.trend);
 }
 function renderTrendsPanel(entries, cur){
   var trends = computeTrends(entries);
+  state.upload._trendsCache = trends;
   var scoreRows = entries.map(function(e){
     var s = e.analysis.score.overall;
-    var status = s===null?null:(s>=80?"healthy":s>=55?"warning":"critical");
-    return '<div class="score-trend-row"><span class="stlabel">'+esc(e.label)+'</span><div class="stbar-track"><div class="stbar-fill" style="width:'+(s||0)+'%; background:'+(status?statusColorVar(status):"var(--border)")+'"></div></div><span class="stval" style="color:'+(status?statusColorVar(status):"var(--ink-faint)")+'">'+(s!==null?s:"—")+'</span></div>';
+    var status = scoreStatus(s);
+    return '<div class="score-trend-row"><span class="stlabel">'+esc(e.label)+'</span><div class="stbar-track"><div class="stbar-fill" style="width:'+(s||0)+'%; background:'+(status?statusColorVar(status):"var(--border)")+'"></div></div><span class="stval" style="color:'+(status?statusColorVar(status):"var(--ink-faint)")+'">'+(s!==null?s+"/100":"—")+'</span></div>';
   }).join("");
-  var tableHtml = '<div class="trend-table-wrap"><table class="trend-table"><thead><tr><th>Metric</th>'
+  var defaultIdx = 0; // Financial Health Score
+  var chartOptions = trends.rows.map(function(row,idx){ return '<option value="'+idx+'"'+(idx===defaultIdx?" selected":"")+'>'+esc(row.label)+'</option>'; }).join("");
+  var chartCard = '<div class="trend-chart-card">'
+    + '<div class="trend-chart-head"><h3>Interactive Trend Chart</h3><select id="trendChartSelect" class="trend-select" aria-label="Choose a metric to chart">'+chartOptions+'</select></div>'
+    + '<div id="trendChartTitleRow" class="trend-chart-title-row"><span class="trend-chart-metric-name">'+esc(trends.rows[defaultIdx].label)+'</span>'+trendChipHtml(trends.rows[defaultIdx].trend)+'</div>'
+    + '<div id="trendChartHolder">'+buildLineChartSVG(trends.labels, trends.rows[defaultIdx])+'</div>'
+    + '</div>';
+  var tableHtml = '<div class="trend-table-wrap"><table class="trend-table"><thead><tr><th>Ratio / Metric</th>'
     + entries.map(function(e){ return '<th>'+esc(e.label)+'</th>'; }).join("")
-    + '</tr></thead><tbody>'
+    + '<th>Trend</th></tr></thead><tbody>'
     + trends.rows.map(function(row){
-        return '<tr><td>'+esc(row.label)+'</td>'+row.values.map(function(v,idx){ return '<td>'+trendCellValue(row,idx)+trendChangeBadge(row,idx)+'</td>'; }).join("")+'</tr>';
+        return '<tr><td>'+esc(row.label)+'</td>'+row.values.map(function(v,idx){ return '<td>'+trendCellValue(row,idx)+trendChangeBadge(row,idx)+'</td>'; }).join("")+'<td>'+(row.trend?trendChipHtml(row.trend):'<span class="trend-cell-na">—</span>')+'</td></tr>';
       }).join("")
     + '</tbody></table></div>';
   return '<div class="container" style="padding:0 24px 40px;">'
-    + '<div class="section-head" style="max-width:none; margin-bottom:28px;"><span class="section-eyebrow">Across '+entries.length+' years</span><h2>Trends &amp; Year-on-Year Insights</h2><p>How the Financial Health Score and key ratios have moved across the years you uploaded.</p></div>'
+    + '<div class="section-head" style="max-width:none; margin-bottom:28px;"><span class="section-eyebrow">Across '+entries.length+' years</span><h2>Trends &amp; Year-on-Year Insights</h2><p>All 17 ratios calculated separately for each year, with year-over-year change and trend direction — using the same formulas and thresholds as the single-year analysis.</p></div>'
     + '<div style="margin-bottom:34px;">'+scoreRows+'</div>'
+    + chartCard
     + tableHtml
     + '<div class="diagnosis-block"><span class="diagnosis-eyebrow">VR Financial Insight — Year-on-Year</span><h2 class="diagnosis-headline" style="font-size:20px;">What changed across the years</h2>'
     + '<ul style="margin:0; padding-left:20px; color:var(--ink-muted); font-size:14px; line-height:1.75;">'+trends.insights.map(function(s){ return '<li>'+esc(s)+'</li>'; }).join("")+'</ul></div>'
@@ -1639,8 +1782,13 @@ function bindUploadResultsEvents(){
       appContainer.querySelectorAll(".results-tab-panel").forEach(function(p){ p.classList.toggle("active", p.getAttribute("data-results-panel")===currentResultsTab); });
     });
   });
+  var chartSelect = document.getElementById("trendChartSelect");
+  if(chartSelect){
+    chartSelect.addEventListener("change", function(){ renderChartHolder(parseInt(chartSelect.value,10)); });
+  }
   bindResultsInteractions();
 }
+
 
 function statusColorVar(status){ return {healthy:"var(--healthy)", warning:"var(--warning)", critical:"var(--critical)"}[status] || "var(--ink-faint)"; }
 function coverageRing(percent){
@@ -1648,14 +1796,26 @@ function coverageRing(percent){
   return '<div class="coverage-ring"><svg width="70" height="70" viewBox="0 0 68 68"><circle cx="34" cy="34" r="'+r+'" stroke="var(--border)" stroke-width="6" fill="none"/><circle cx="34" cy="34" r="'+r+'" stroke="url(#ringGrad)" stroke-width="6" fill="none" stroke-dasharray="'+c+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c4dff"/><stop offset="1" stop-color="#00e5ff"/></linearGradient></defs></svg><div class="pct">'+percent+'%</div></div>';
 }
 var INCOME_DERIVED_KEYS = {revenue:1,cogs:1,operatingExpenses:1,interestExpense:1,taxExpense:1,grossProfit:1,operatingProfit:1,ebit:1,profitBeforeTax:1,netProfit:1};
+var DERIVED_KEY_LABELS = {
+  revenue:"Revenue", cogs:"Cost of Goods Sold", operatingExpenses:"Operating Expenses", interestExpense:"Interest Expense", taxExpense:"Tax Expense",
+  grossProfit:"Gross Profit", operatingProfit:"Operating Profit (EBIT)", ebit:"Operating Profit (EBIT)", profitBeforeTax:"Profit Before Tax", netProfit:"Net Profit",
+  cash:"Cash & Bank", receivables:"Receivables", inventory:"Inventory", otherCurrentAssets:"Other Current Assets", currentAssets:"Total Current Assets",
+  ppe:"Property, Plant & Equipment", otherNonCurrentAssets:"Other Non-Current Assets", nonCurrentAssets:"Total Non-Current Assets", totalAssets:"Total Assets",
+  payables:"Payables", shortTermBorrowings:"Short-Term Borrowings", otherCurrentLiabilities:"Other Current Liabilities", currentLiabilities:"Total Current Liabilities",
+  longTermDebt:"Long-Term Debt", preferenceCapital:"Preference Capital", equityCapital:"Equity Capital", reserves:"Reserves & Surplus",
+  shareholdersEquity:"Shareholders' Equity", totalDebt:"Total Debt", fixedInterestBearingSecurities:"Fixed Interest-Bearing Securities"
+};
+function missingFieldLabels(missing){ return (missing||[]).map(function(k){ return DERIVED_KEY_LABELS[k]||k; }); }
 function ratioCard(r, idSuffix, allowJumpToInputs){
   idSuffix = idSuffix||""; if(allowJumpToInputs===undefined) allowJumpToInputs=true;
   if(!r.available){
-    var missingLabel = (r.missing && r.missing.length) ? "the required underlying figures" : "a required value (denominator was zero)";
     var targetsIncome = (r.missing||[]).some(function(k){ return INCOME_DERIVED_KEYS[k]; });
     var targetAction = targetsIncome ? "goto-income" : "goto-balance";
+    var missingMsg = (r.missing && r.missing.length)
+      ? ("Not Available — "+missingFieldLabels(r.missing).join(", ")+" missing.")
+      : "Not Available — a required value was zero (division not possible).";
     return '<div class="ratio-card status-unavailable"><div class="ratio-card-head"><span class="ratio-name">'+r.name+'</span><span class="status-badge unavailable">Data unavailable</span></div>'
-      + '<p class="ratio-unavailable-msg">This ratio could not be calculated accurately because '+missingLabel+' '+((r.missing&&r.missing.length)?"were":"was")+' not provided.</p>'
+      + '<p class="ratio-unavailable-msg">'+esc(missingMsg)+'</p>'
       + (allowJumpToInputs?('<button class="btn btn-ghost btn-sm add-missing-btn" data-action="'+targetAction+'">+ Add Missing Information</button>'):'')
       + '</div>';
   }
