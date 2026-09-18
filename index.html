@@ -1268,18 +1268,43 @@ function updateUploadFileRow(f){
     }
   }
 }
-// Merges one page's extraction result into the year bucket it belongs to. Never overwrites a
-// value already captured from an earlier page for the same field — instead flags a conflict so
-// the person can verify it manually on the review screen.
-function ingestExtraction(fileMeta, extracted){
-  var yearKey = normalizeYearLabel(extracted.financialYear) || "Unspecified Year";
+// Converts a backend extraction response into a flat list of per-year entries. Supports both:
+//   - NEW format: { statementType, currencyHint, years: [ { financialYear, fields }, ... ] }
+//   - OLD format: { statementType, financialYear, currencyHint, fields }
+// so the frontend keeps working regardless of which shape the backend currently returns.
+function normalizeExtractionToYearEntries(extracted){
+  extracted = extracted || {};
+  if(Array.isArray(extracted.years)){
+    return extracted.years.map(function(y){
+      y = y || {};
+      return {
+        financialYear: y.financialYear,
+        statementType: extracted.statementType,
+        currencyHint: extracted.currencyHint,
+        fields: y.fields || {}
+      };
+    });
+  }
+  // Old, single-year format — wrap it as a one-item list so downstream code is identical either way.
+  return [{
+    financialYear: extracted.financialYear,
+    statementType: extracted.statementType,
+    currencyHint: extracted.currencyHint,
+    fields: extracted.fields || {}
+  }];
+}
+// Merges ONE year's worth of extracted fields (from one page, for one financial year) into that
+// year's bucket. Never overwrites a value already captured from an earlier page/year-entry for the
+// same field — instead flags a conflict so the person can verify it manually on the review screen.
+function ingestYearEntry(fileMeta, entry){
+  var yearKey = normalizeYearLabel(entry.financialYear) || "Unspecified Year";
   if(!state.upload.years[yearKey]){
     state.upload.years[yearKey] = {displayLabel:yearKey, income:{}, balance:{}, overrides:{}, meta:{}, currencyHint:null, statementTypesSeen:{}};
   }
   var bucket = state.upload.years[yearKey];
-  if(extracted.currencyHint && !bucket.currencyHint) bucket.currencyHint = extracted.currencyHint;
-  if(extracted.statementType) bucket.statementTypesSeen[extracted.statementType]=true;
-  var f = extracted.fields||{};
+  if(entry.currencyHint && !bucket.currencyHint) bucket.currencyHint = entry.currencyHint;
+  if(entry.statementType) bucket.statementTypesSeen[entry.statementType]=true;
+  var f = entry.fields||{};
   function assign(store, key, rawVal){
     if(rawVal===null || rawVal===undefined || rawVal==="") return;
     var num = Number(rawVal);
@@ -1298,6 +1323,14 @@ function ingestExtraction(fileMeta, extracted){
   if(f.totalCurrentAssets!=null) assign(bucket.overrides,"currentAssets", f.totalCurrentAssets);
   if(f.totalCurrentLiabilities!=null) assign(bucket.overrides,"currentLiabilities", f.totalCurrentLiabilities);
   return yearKey;
+}
+// Processes one page's full extraction response, which may describe ONE year or MULTIPLE years
+// (e.g. a P&L image showing "FY 2025 | FY 2024" side by side). Each year is merged into its own
+// bucket independently — values are never mixed or copied across years. Returns the list of
+// year keys touched by this one file (usually one, but can be more than one).
+function ingestExtraction(fileMeta, extracted){
+  var entries = normalizeExtractionToYearEntries(extracted);
+  return entries.map(function(entry){ return ingestYearEntry(fileMeta, entry); });
 }
 // Sends one statement-page image to our own backend (/api/analyze-statement), which holds the
 // vision-model API key server-side. No key ever touches the browser.
@@ -2190,41 +2223,4 @@ function openConnectModal(){
     // so this works reliably even when the page is opened directly as a local file).
     document.getElementById("c_subject_hidden").value = "VR FinSight — " + data.queryType + " from " + data.name;
     document.getElementById("c_replyto_hidden").value = data.email;
-    document.getElementById("c_type_hidden").value = data.queryType;
-    var btn = document.getElementById("connectSubmitBtn");
-    btn.disabled = true; btn.textContent = "Sending…";
-    formsubmitPending = true;
-    clearTimeout(formsubmitFallbackTimer);
-    // Safety net: if the iframe's load event doesn't fire for any reason, still
-    // confirm to the user after a few seconds rather than leaving the button stuck.
-    formsubmitFallbackTimer = setTimeout(revealConnectSuccess, 5000);
-    // No e.preventDefault() here — the form submits natively to formsubmitHiddenFrame.
-  });
-}
-function escCloseModal(e){ if(e.key==="Escape") closeConnectModal(); }
-function closeConnectModal(){ modalRoot.innerHTML=""; document.removeEventListener("keydown", escCloseModal); }
-
-var toastTimer=null;
-function showToast(msg){
-  toastRoot.innerHTML = '<div class="toast" id="toastEl">'+msg+'</div>';
-  var el = document.getElementById("toastEl");
-  requestAnimationFrame(function(){ el.classList.add("show"); });
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ el.classList.remove("show"); }, 4500);
-}
-
-/* scroll reveal */
-if("IntersectionObserver" in window){
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(entry){ if(entry.isIntersecting){ entry.target.classList.add("in"); io.unobserve(entry.target); } });
-  }, {threshold:0.15});
-  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
-} else {
-  document.querySelectorAll(".reveal").forEach(function(el){ el.classList.add("in"); });
-}
-
-showLanding();
-})();
-</script>
-</body>
-</html>
+    
