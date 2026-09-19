@@ -18,44 +18,57 @@ var EXTRACTION_PROMPT = [
   "You are a meticulous financial data transcription assistant. You will be shown ONE PAGE of a",
   "company's financial statement (Profit & Loss / Income Statement, Balance Sheet, or Cash Flow Statement).",
   "",
-  "Your ONLY job is to transcribe values that are explicitly and legibly printed on this page.",
-  "You must NEVER estimate, infer, calculate, average, or guess a value that is not directly printed",
-  "on the page. If a figure is unclear, cropped, blurry, covered, or simply not present on this page,",
-  "its value MUST be null. Do not pull a number from memory or assume it matches a different page.",
+  "IMPORTANT: A single page can show MULTIPLE financial years side by side in separate columns",
+  "(for example \"FY 2025 | FY 2024 | FY 2023\"). You must identify EVERY distinct year/period column",
+  "printed on this page and report each one separately. Do not report only one year if more are shown.",
+  "Do not merge, average, or blend numbers from different year columns together — each year's figures",
+  "must come ONLY from that year's own column. Read each column independently.",
+  "",
+  "Your ONLY job is to transcribe values that are explicitly and legibly printed on this page, for each",
+  "year column separately. You must NEVER estimate, infer, calculate, average, or guess a value that is",
+  "not directly printed under that specific year's column. If a figure is unclear, cropped, blurry,",
+  "covered, or simply not present for that year, its value MUST be null. Never fill a blank year's value",
+  "using a number from a different year's column, and never pull a number from memory.",
   "",
   "Respond with STRICT JSON ONLY — no markdown fences, no commentary, no explanation before or after —",
   "in exactly this shape:",
   "{",
   '  "statementType": "profit_loss" | "balance_sheet" | "cash_flow" | "other",',
-  '  "financialYear": string or null,',
   '  "currencyHint": string or null,',
-  '  "fields": {',
-  '    "revenue": number or null, "cogs": number or null, "operatingExpenses": number or null,',
-  '    "interestExpense": number or null, "taxExpense": number or null,',
-  '    "grossProfit": number or null, "operatingProfit": number or null, "netProfit": number or null,',
-  '    "cash": number or null, "receivables": number or null, "inventory": number or null,',
-  '    "otherCurrentAssets": number or null, "totalCurrentAssets": number or null,',
-  '    "ppe": number or null, "otherNonCurrentAssets": number or null, "totalAssets": number or null,',
-  '    "payables": number or null, "shortTermBorrowings": number or null, "otherCurrentLiabilities": number or null,',
-  '    "totalCurrentLiabilities": number or null, "longTermDebt": number or null, "preferenceCapital": number or null,',
-  '    "equityCapital": number or null, "reserves": number or null, "shareholdersEquity": number or null,',
-  '    "totalDebt": number or null',
-  "  }",
+  '  "years": [',
+  "    {",
+  '      "financialYear": string,',
+  '      "fields": {',
+  '        "revenue": number or null, "cogs": number or null, "operatingExpenses": number or null,',
+  '        "interestExpense": number or null, "taxExpense": number or null,',
+  '        "grossProfit": number or null, "operatingProfit": number or null, "netProfit": number or null,',
+  '        "cash": number or null, "receivables": number or null, "inventory": number or null,',
+  '        "otherCurrentAssets": number or null, "totalCurrentAssets": number or null,',
+  '        "ppe": number or null, "otherNonCurrentAssets": number or null, "totalAssets": number or null,',
+  '        "payables": number or null, "shortTermBorrowings": number or null, "otherCurrentLiabilities": number or null,',
+  '        "totalCurrentLiabilities": number or null, "longTermDebt": number or null, "preferenceCapital": number or null,',
+  '        "equityCapital": number or null, "reserves": number or null, "shareholdersEquity": number or null,',
+  '        "totalDebt": number or null',
+  "      }",
+  "    }",
+  "  ]",
   "}",
   "",
-  "financialYear: the period/year label exactly as printed, e.g. \"FY 2023-24\" or \"Year ended 31 March 2024\".",
-  "currencyHint: the currency printed, e.g. \"INR\", \"₹\", \"USD\", \"$\".",
+  "financialYear: the period/year label exactly as printed for THAT column, e.g. \"FY 2023-24\", \"FY2025\", or",
+  "\"Year ended 31 March 2024\". If this page shows only one year, \"years\" still contains exactly one entry —",
+  "always use this array shape, even for a single-year page.",
+  "currencyHint: the currency printed, e.g. \"INR\", \"₹\", \"USD\", \"$\" (reported once for the page, not per year).",
   "",
   "Rules:",
   "- Numbers must be plain numbers only (no currency symbols, no commas, no \"Cr\"/\"Lakh\"/\"Mn\" text).",
   "  Convert to the base unit using the multiplier actually printed on the statement",
   "  (e.g. figures stated in \"₹ Lakhs\" × 100000, \"₹ Crores\" × 10000000, \"$ millions\" × 1000000).",
   "  If the unit is ambiguous, transcribe the number as printed and do not guess the multiplier.",
-  "- If a line item is not present on this specific page, its value is null.",
+  "- If a line item is not present under a given year's column, that year's value for it is null.",
   "- Do not compute subtotals yourself.",
   "  For example, do not add individual expense lines to invent \"operatingExpenses\"",
-  "  if it is not printed as a single line.",
-  "- Only use figures printed as a distinct line on the page.",
+  "  if it is not printed as a single line for that year.",
+  "- Only use figures printed as a distinct line, under the correct year's own column.",
   "- Negative values (losses) should be negative numbers.",
   "- Return ONLY the JSON object, nothing else."
 ].join("\n");
@@ -273,6 +286,24 @@ module.exports = async function handler(req, res) {
       });
 
       return;
+    }
+
+    // Normalize the response shape defensively: the prompt above always asks for a
+    // "years" array (even for a single-year page), but if the model ever drifts back
+    // to the old flat single-year shape ("financialYear" + "fields" at the top level),
+    // wrap it into the same array shape here so the frontend never has to special-case it.
+    if (!parsed || typeof parsed !== "object") {
+      parsed = { statementType: "other", currencyHint: null, years: [] };
+    } else if (!Array.isArray(parsed.years)) {
+      if (parsed.fields && typeof parsed.fields === "object") {
+        parsed = {
+          statementType: parsed.statementType || "other",
+          currencyHint: parsed.currencyHint || null,
+          years: [{ financialYear: parsed.financialYear || null, fields: parsed.fields }]
+        };
+      } else {
+        parsed.years = [];
+      }
     }
 
     // Return extracted financial data to frontend
