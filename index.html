@@ -1268,36 +1268,47 @@ function updateUploadFileRow(f){
     }
   }
 }
-// Merges one page's extraction result into the year bucket it belongs to. Never overwrites a
-// value already captured from an earlier page for the same field — instead flags a conflict so
-// the person can verify it manually on the review screen.
+// Merges one PAGE's extraction result into the year bucket(s) it belongs to. A single page can
+// report multiple years (e.g. "FY2025 | FY2024 | FY2023" columns) — each year is merged into its
+// own, completely separate bucket. If a bucket for that year already exists (e.g. the P&L page for
+// FY2025 was processed earlier and this page is the Balance Sheet for FY2025 among others), this
+// page's fields are added into that SAME existing bucket — never a new, duplicate one. Never
+// overwrites a value already captured from an earlier page for the same field+year — instead flags
+// a conflict so the person can verify it manually on the review screen. Returns the list of year
+// keys this page contributed to (used only for an optional per-file status note).
 function ingestExtraction(fileMeta, extracted){
-  var yearKey = normalizeYearLabel(extracted.financialYear) || "Unspecified Year";
-  if(!state.upload.years[yearKey]){
-    state.upload.years[yearKey] = {displayLabel:yearKey, income:{}, balance:{}, overrides:{}, meta:{}, currencyHint:null, statementTypesSeen:{}};
-  }
-  var bucket = state.upload.years[yearKey];
-  if(extracted.currencyHint && !bucket.currencyHint) bucket.currencyHint = extracted.currencyHint;
-  if(extracted.statementType) bucket.statementTypesSeen[extracted.statementType]=true;
-  var f = extracted.fields||{};
-  function assign(store, key, rawVal){
-    if(rawVal===null || rawVal===undefined || rawVal==="") return;
-    var num = Number(rawVal);
-    if(isNaN(num)) return;
-    if(store[key]===undefined || store[key]===null){
-      store[key]=num;
-      bucket.meta[key] = {source:fileMeta.name, alt:[]};
-    } else if(store[key]!==num){
-      bucket.meta[key] = bucket.meta[key] || {source:fileMeta.name, alt:[]};
-      bucket.meta[key].alt.push({value:num, source:fileMeta.name});
+  var yearsArr = Array.isArray(extracted && extracted.years) ? extracted.years : [];
+  var touchedKeys = [];
+  yearsArr.forEach(function(yearEntry){
+    if(!yearEntry) return;
+    var yearKey = normalizeYearLabel(yearEntry.financialYear) || "Unspecified Year";
+    if(!state.upload.years[yearKey]){
+      state.upload.years[yearKey] = {displayLabel:yearKey, income:{}, balance:{}, overrides:{}, meta:{}, currencyHint:null, statementTypesSeen:{}};
     }
-  }
-  ["revenue","cogs","operatingExpenses","interestExpense","taxExpense"].forEach(function(k){ assign(bucket.income,k,f[k]); });
-  ["cash","receivables","inventory","otherCurrentAssets","ppe","otherNonCurrentAssets","payables","shortTermBorrowings","otherCurrentLiabilities","longTermDebt","preferenceCapital","equityCapital","reserves"].forEach(function(k){ assign(bucket.balance,k,f[k]); });
-  ["grossProfit","operatingProfit","netProfit","totalAssets","totalDebt","shareholdersEquity"].forEach(function(k){ assign(bucket.overrides,k,f[k]); });
-  if(f.totalCurrentAssets!=null) assign(bucket.overrides,"currentAssets", f.totalCurrentAssets);
-  if(f.totalCurrentLiabilities!=null) assign(bucket.overrides,"currentLiabilities", f.totalCurrentLiabilities);
-  return yearKey;
+    var bucket = state.upload.years[yearKey];
+    if(extracted.currencyHint && !bucket.currencyHint) bucket.currencyHint = extracted.currencyHint;
+    if(extracted.statementType) bucket.statementTypesSeen[extracted.statementType]=true;
+    var f = yearEntry.fields||{};
+    function assign(store, key, rawVal){
+      if(rawVal===null || rawVal===undefined || rawVal==="") return;
+      var num = Number(rawVal);
+      if(isNaN(num)) return;
+      if(store[key]===undefined || store[key]===null){
+        store[key]=num;
+        bucket.meta[key] = {source:fileMeta.name, alt:[]};
+      } else if(store[key]!==num){
+        bucket.meta[key] = bucket.meta[key] || {source:fileMeta.name, alt:[]};
+        bucket.meta[key].alt.push({value:num, source:fileMeta.name});
+      }
+    }
+    ["revenue","cogs","operatingExpenses","interestExpense","taxExpense"].forEach(function(k){ assign(bucket.income,k,f[k]); });
+    ["cash","receivables","inventory","otherCurrentAssets","ppe","otherNonCurrentAssets","payables","shortTermBorrowings","otherCurrentLiabilities","longTermDebt","preferenceCapital","equityCapital","reserves"].forEach(function(k){ assign(bucket.balance,k,f[k]); });
+    ["grossProfit","operatingProfit","netProfit","totalAssets","totalDebt","shareholdersEquity"].forEach(function(k){ assign(bucket.overrides,k,f[k]); });
+    if(f.totalCurrentAssets!=null) assign(bucket.overrides,"currentAssets", f.totalCurrentAssets);
+    if(f.totalCurrentLiabilities!=null) assign(bucket.overrides,"currentLiabilities", f.totalCurrentLiabilities);
+    touchedKeys.push(yearKey);
+  });
+  return touchedKeys;
 }
 // Sends one statement-page image to our own backend (/api/analyze-statement), which holds the
 // vision-model API key server-side. No key ever touches the browser.
@@ -1345,8 +1356,15 @@ async function runExtraction(){
     try{
       var extracted = await callVisionExtraction(fmeta.base64, fmeta.mimeType);
       fmeta.extracted = extracted;
-      fmeta.status="done";
-      ingestExtraction(fmeta, extracted);
+      var touchedKeys = ingestExtraction(fmeta, extracted);
+      if(touchedKeys.length===0){
+        // Reuses the existing error display — no new UI needed. This can legitimately happen
+        // (e.g. a cover page or a page with no recognizable statement/year on it).
+        fmeta.status="error";
+        fmeta.error = "No readable financial year or data was found on this image. Try a clearer photo, or a different page.";
+      } else {
+        fmeta.status="done";
+      }
     }catch(e){
       fmeta.status="error";
       fmeta.error = (e && e.message) || "Extraction failed.";
