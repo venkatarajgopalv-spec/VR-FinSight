@@ -1235,8 +1235,14 @@ function normalizeYearLabel(raw){
     if(y2.length===2) y2 = y1.slice(0,2)+y2;
     return "FY "+y1+"–"+y2;
   }
+  // Only collapse a bare year into the generic "FY YYYY" form when the raw label carries no other
+  // identifying context. If it ALSO names a specific month (e.g. "December 2023", "31 March 2026",
+  // "Mar-26"), keep that text as-is instead of discarding the month -- otherwise a December year-end
+  // and a March year-end reporting the same calendar year would silently collapse into one identical
+  // "FY 2023" bucket, incorrectly merging two genuinely different reporting periods.
+  var hasMonthText = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(s);
   var single = s.match(/(19|20)\d{2}/);
-  if(single) return "FY "+single[0];
+  if(single && !hasMonthText) return "FY "+single[0];
   return s;
 }
 function mapCurrencyHint(hint){
@@ -1283,9 +1289,10 @@ function ingestExtraction(fileMeta, extracted){
     if(!yearEntry) return;
     var yearKey = normalizeYearLabel(yearEntry.financialYear) || "Unspecified Year";
     if(!state.upload.years[yearKey]){
-      state.upload.years[yearKey] = {displayLabel:yearKey, income:{}, balance:{}, overrides:{}, meta:{}, currencyHint:null, statementTypesSeen:{}};
+      state.upload.years[yearKey] = {displayLabel:yearKey, income:{}, balance:{}, overrides:{}, meta:{}, derivedFieldsInfo:{}, currencyHint:null, statementTypesSeen:{}};
     }
     var bucket = state.upload.years[yearKey];
+    if(!bucket.derivedFieldsInfo) bucket.derivedFieldsInfo = {}; // defensive, in case an older bucket predates this key
     if(extracted.currencyHint && !bucket.currencyHint) bucket.currencyHint = extracted.currencyHint;
     if(extracted.statementType) bucket.statementTypesSeen[extracted.statementType]=true;
     var f = yearEntry.fields||{};
@@ -1306,6 +1313,19 @@ function ingestExtraction(fileMeta, extracted){
     ["grossProfit","operatingProfit","netProfit","totalAssets","totalDebt","shareholdersEquity"].forEach(function(k){ assign(bucket.overrides,k,f[k]); });
     if(f.totalCurrentAssets!=null) assign(bucket.overrides,"currentAssets", f.totalCurrentAssets);
     if(f.totalCurrentLiabilities!=null) assign(bucket.overrides,"currentLiabilities", f.totalCurrentLiabilities);
+    // Transparency metadata only — records WHICH fields the model derived (vs. directly read) and how.
+    // Purely additive: never consumed by deriveFinancials/evaluateRatios/RATIOS, so it cannot change
+    // any ratio, health score, or existing calculation. Stored for audit/future UI use.
+    var df = yearEntry.derivedFields;
+    if(df && typeof df==="object"){
+      Object.keys(df).forEach(function(key){
+        var info = df[key];
+        if(!info || typeof info!=="object") return;
+        if(!bucket.derivedFieldsInfo[key]){
+          bucket.derivedFieldsInfo[key] = {formula: typeof info.formula==="string"?info.formula:null, inputs: Array.isArray(info.inputs)?info.inputs:[], source: fileMeta.name};
+        }
+      });
+    }
     touchedKeys.push(yearKey);
   });
   return touchedKeys;
@@ -1551,9 +1571,105 @@ function confirmUploadReview(){
   currentResultsTab = "trends";
   renderStep();
 }
+/* ---------------------------------------------------------------------------
+   Chronological ordering for Trends/YoY ONLY.
+   BUG THIS FIXES: extractYearSortValue() (used for the year tabs, UNCHANGED below)
+   only recognizes a bare 4-digit year (19xx/20xx). Labels like "Mar-26" contain no
+   such substring, so every one of them fell back to the same sentinel (999999),
+   sort() had nothing to distinguish them by, and the keys silently stayed in
+   whatever order they were first inserted — which happens to be the image's own
+   left-to-right column order (often newest-first), NOT true chronology. That is
+   exactly why a trend narrative could say "moved from 80/100 in Mar-26 to 70/100
+   in Mar-22" — backwards.
+   FIX: a dedicated parser, used ONLY when building the Trends/YoY entry order,
+   that understands many real-world period formats (see parseChronologicalSortValue)
+   and returns a genuinely comparable "months since year 0" number. It is applied
+   as an additional .sort() on top of whatever sortedUploadYearKeys() already
+   returns — sortedUploadYearKeys()/extractYearSortValue()/the year tabs are not
+   touched at all, so tab order and every other use of that function is unaffected.
+--------------------------------------------------------------------------- */
+var MONTH_NAME_TO_INDEX = {
+  jan:0, january:0, feb:1, february:1, mar:2, march:2, apr:3, april:3,
+  may:4, jun:5, june:5, jul:6, july:6, aug:7, august:7,
+  sep:8, sept:8, september:8, oct:9, october:9, nov:10, november:10, dec:11, december:11
+};
+var MONTH_NAME_ALTERNATION = "(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)";
+function findMonthIndexIn(s){
+  var m = s.match(new RegExp("\\b"+MONTH_NAME_ALTERNATION+"\\b","i"));
+  if(!m) return null;
+  var key = m[1].toLowerCase();
+  return MONTH_NAME_TO_INDEX.hasOwnProperty(key) ? MONTH_NAME_TO_INDEX[key] : null;
+}
+// Parses ANY reasonable financial-period label into a single number that sorts correctly in
+// true chronological order, regardless of the format used or the direction the source image
+// listed its columns in. Recognizes (non-exhaustive, all from real statement formats):
+//   "Mar-26" / "Mar-25"                         (month abbreviation + 2-digit year)
+//   "March 2026" / "December 2025" / "June 2025" (any month name, any 2-digit-year-end company)
+//   "31-Mar-2026" / "31 March 2026"              (day + month + 4-digit year, either order)
+//   "31/03/2026"                                  (numeric DD/MM/YYYY)
+//   "FY2025" / "2025"                             (bare year — anchored to March as a neutral
+//                                                  default, matching this codebase's existing
+//                                                  FY-range convention below; only affects
+//                                                  relative ordering among bare-year labels)
+//   "FY 2024-25" / "FY2024-25" / "2023/24"        (year range — uses the ENDING year)
+// Returns null if genuinely unparseable (caller must treat that entry as un-orderable).
+function parseChronologicalSortValue(raw){
+  if(!raw) return null;
+  var s = raw.toString().trim();
+  if(s==="") return null;
+
+  // 1) Explicit year RANGE, e.g. "FY 2024–2025", "FY2024-25", "2023/24" -> use the ENDING year.
+  var range = s.match(/((?:19|20)\d{2})\s*[-\/–—]\s*((?:19|20)?\d{2})\b/);
+  if(range){
+    var y1 = range[1], y2raw = range[2];
+    var y2 = y2raw.length===2 ? (y1.slice(0,2)+y2raw) : y2raw;
+    return parseInt(y2,10)*12 + 2; // March anchor, matching this codebase's existing FY-range convention
+  }
+
+  // 2) Numeric DD/MM/YYYY or DD-MM-YYYY (day-first, matching the "31/03/2026" example given).
+  var numDate = s.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-]((?:19|20)\d{2})\b/);
+  if(numDate){
+    var mm = parseInt(numDate[2],10);
+    if(mm>=1 && mm<=12) return parseInt(numDate[3],10)*12 + (mm-1);
+  }
+
+  // 3) Any 4-digit year found anywhere, combined with a month NAME found anywhere else in the
+  //    string if present (order-independent — handles "31 March 2026", "March 31, 2026",
+  //    "Year ended March 31, 2026", "Year ended 31 March 2026", "December 2025", "FY2025", "2025").
+  //    Searching for the year via a strict 19xx/20xx pattern (not "any digits") means a day-of-month
+  //    number like "31" is never mistaken for part of the year.
+  var yearMatch = s.match(/(?<!\d)(19|20)\d{2}\b/);
+  if(yearMatch){
+    var year4 = parseInt(yearMatch[0],10);
+    var mIdx = findMonthIndexIn(s);
+    return year4*12 + (mIdx===null ? 2 : mIdx); // March anchor when no month name is present at all
+  }
+
+  // 4) No 4-digit year anywhere — try "Mon-YY"/"Mon YY"/"Mon'YY" (month name directly adjacent to a
+  //    2-digit year, short separator only) — e.g. "Mar-26".
+  var monYY = s.match(new RegExp(MONTH_NAME_ALTERNATION+"[\\s.\\-\\/']{0,3}(\\d{2})\\b","i"));
+  if(monYY){
+    var mk = monYY[1].toLowerCase();
+    if(MONTH_NAME_TO_INDEX.hasOwnProperty(mk)) return (2000+parseInt(monYY[2],10))*12 + MONTH_NAME_TO_INDEX[mk];
+  }
+
+  return null; // genuinely unparseable
+}
 function computeAllYearAnalyses(){
   var cur = state.upload.company.currency;
-  return sortedUploadYearKeys().map(function(yk){
+  // Trends/YoY specifically need TRUE chronological order (oldest -> newest), independent of
+  // whichever order the year tabs use. sortedUploadYearKeys() is intentionally NOT relied upon
+  // here for ordering — see parseChronologicalSortValue's comment above for why. Keys that fail
+  // to parse chronologically are pushed to the end (stable), rather than crashing or corrupting
+  // the ordering of the keys that DID parse correctly.
+  var chronologicalKeys = sortedUploadYearKeys().slice().sort(function(a,b){
+    var av = parseChronologicalSortValue(a), bv = parseChronologicalSortValue(b);
+    if(av===null && bv===null) return 0;
+    if(av===null) return 1;
+    if(bv===null) return -1;
+    return av-bv;
+  });
+  return chronologicalKeys.map(function(yk){
     var b = state.upload.years[yk];
     return {key:yk, label:b.displayLabel||yk, analysis:computeAnalysis(b.income, b.balance, cur, b.overrides)};
   });
