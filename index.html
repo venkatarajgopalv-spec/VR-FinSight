@@ -272,6 +272,7 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
 .ratio-card.status-healthy::before{background:var(--healthy);}
 .ratio-card.status-warning::before{background:var(--warning);}
 .ratio-card.status-critical::before{background:var(--critical);}
+.ratio-card.status-informational::before{background:var(--v2);}
 .ratio-card.status-unavailable::before{background:var(--ink-faint);}
 .ratio-card-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:10px;}
 .ratio-name{font-size:14.5px; color:var(--ink-muted); font-weight:500;}
@@ -279,6 +280,7 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
 .status-badge.healthy{background:var(--healthy-soft); color:var(--healthy);}
 .status-badge.warning{background:var(--warning-soft); color:var(--warning);}
 .status-badge.critical{background:var(--critical-soft); color:var(--critical);}
+.status-badge.informational{background:rgba(0,229,255,0.12); color:var(--v2);}
 .status-badge.unavailable{background:var(--border); color:var(--ink-faint);}
 .ratio-value{font-family:var(--font-m); font-size:32px; font-weight:700; margin:8px 0 12px;}
 .ratio-interpretation{font-size:13.5px; color:var(--ink-muted); margin-bottom:18px; line-height:1.55;}
@@ -292,6 +294,7 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
 .ratio-panel .panel-label{font-family:var(--font-m); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); margin-bottom:7px;}
 .ratio-panel .panel-formula{font-family:var(--font-m); color:var(--v2); margin-bottom:13px;}
 .ratio-panel .panel-calc{font-family:var(--font-m); color:var(--ink); margin-bottom:13px;}
+.ratio-panel .panel-simple{color:var(--ink-muted); font-size:13.5px; line-height:1.55; font-style:italic;}
 .ratio-panel p{color:var(--ink-muted); line-height:1.55;}
 .add-missing-btn{margin-top:12px;}
 
@@ -440,8 +443,13 @@ footer{border-top:1px solid var(--border); padding:60px 0 34px; margin-top:40px;
 .trend-chip.trend-improving{background:var(--healthy-soft); color:var(--healthy);}
 .trend-chip.trend-declining{background:var(--critical-soft); color:var(--critical);}
 .trend-chip.trend-stable{background:rgba(255,255,255,0.06); color:var(--ink-muted);}
+.trend-chip.trend-increasing{background:rgba(0,229,255,0.12); color:var(--v2);}
+.trend-chip.trend-decreasing{background:rgba(108,124,255,0.14); color:var(--v1);}
 .trend-chart-card{background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:var(--r-lg); padding:24px 24px 8px; margin-bottom:34px;}
 .trend-chart-head{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:6px;}
+.trend-select-wrap{min-width:220px; max-width:320px;}
+.trend-select-wrap .cs-trigger{padding:10px 14px; font-size:13.5px;}
+@media (max-width:520px){ .trend-select-wrap{min-width:0; max-width:none; width:100%;} }
 .trend-chart-head h3{font-size:15px; margin:0;}
 .trend-select{background:rgba(255,255,255,0.03); border:1px solid var(--border); color:var(--ink); font-family:var(--font-m); font-size:12.5px; padding:9px 14px; border-radius:10px; cursor:pointer;}
 .trend-select:focus{border-color:var(--v2); outline:none;}
@@ -686,7 +694,9 @@ var INCOME_FIELDS = [
   {key:"cogs", label:"Cost of Goods Sold (COGS)", required:true, help:"Direct cost of producing the goods or services sold."},
   {key:"operatingExpenses", label:"Operating Expenses", required:true, help:"Selling, general, administrative and other operating costs (excluding COGS)."},
   {key:"interestExpense", label:"Interest Expense", required:true, help:"Interest paid on borrowings during the period."},
-  {key:"taxExpense", label:"Tax Expense", required:false, help:"Income tax charged for the period. Leave blank if unknown — Net Profit-based ratios will be shown as unavailable instead of estimated."}
+  {key:"taxExpense", label:"Tax Expense", required:false, help:"Income tax charged for the period. Leave blank if unknown — Net Profit-based ratios will be shown as unavailable instead of estimated."},
+  {key:"preferenceDividend", label:"Preference Dividend", required:false, help:"Dividend paid to preference shareholders, if any. Leave blank if not applicable — EPS will then use Net Profit as-is."},
+  {key:"weightedAvgShares", label:"Weighted Average Equity Shares", required:false, help:"Weighted average number of equity shares outstanding during the period, as reported for EPS purposes. Needed to calculate EPS."}
 ];
 var BALANCE_FIELDS = {
   currentAssets:[
@@ -709,9 +719,13 @@ var BALANCE_FIELDS = {
     {key:"preferenceCapital", label:"Preference Share Capital", required:false, help:"Capital raised through preference shares, treated as a fixed-interest-bearing security."},
     {key:"equityCapital", label:"Equity Share Capital", required:true, help:"Paid-up capital held by equity shareholders."},
     {key:"reserves", label:"Reserves & Surplus", required:true, help:"Retained earnings and other reserves belonging to shareholders."}
+  ],
+  marketData:[
+    {key:"equitySharesOutstanding", label:"Equity Shares Outstanding", required:false, help:"Number of equity shares currently outstanding. Needed for Book Value Per Share."},
+    {key:"marketPricePerShare", label:"Market Price Per Share", required:false, help:"Current market price of one equity share. Needed for the P/E ratio. Never estimated — leave blank if unknown."}
   ]
 };
-var ALL_BALANCE_FIELDS = [].concat(BALANCE_FIELDS.currentAssets, BALANCE_FIELDS.nonCurrentAssets, BALANCE_FIELDS.currentLiabilities, BALANCE_FIELDS.longTermFinancing);
+var ALL_BALANCE_FIELDS = [].concat(BALANCE_FIELDS.currentAssets, BALANCE_FIELDS.nonCurrentAssets, BALANCE_FIELDS.currentLiabilities, BALANCE_FIELDS.longTermFinancing, BALANCE_FIELDS.marketData);
 var INCOME_FIELD_KEYS = {}; INCOME_FIELDS.forEach(function(f){ INCOME_FIELD_KEYS[f.key]=1; });
 
 /* ============================ VALIDATION ============================ */
@@ -810,6 +824,34 @@ function deriveFinancials(income, balance, overrides){
   });
   d.ebit = d.operatingProfit;
   if(d.totalAssets===null && d.currentAssets!==null) d.totalAssets = d.currentAssets + (d.nonCurrentAssets!==null?d.nonCurrentAssets:0);
+
+  // ---- Market / shareholder ratios (EPS, BVPS, P/E) ----
+  d.preferenceDividend = income.preferenceDividend==null?null:income.preferenceDividend;
+  d.weightedAvgShares = income.weightedAvgShares==null?null:income.weightedAvgShares;
+  d.equitySharesOutstanding = balance.equitySharesOutstanding==null?null:balance.equitySharesOutstanding;
+  d.marketPricePerShare = balance.marketPricePerShare==null?null:balance.marketPricePerShare;
+
+  // EPS: a directly-reported figure takes priority over our own formula (companies compute EPS per
+  // accounting standards, including weighted-average adjustments for in-year share issuances/buybacks,
+  // more precisely than a simple formula can) -- only derive via the formula when no direct figure was
+  // given but the required inputs genuinely are. Never invented when neither is available.
+  if(overrides.eps!==null && overrides.eps!==undefined && !isNaN(overrides.eps)){
+    d.eps = overrides.eps;
+    d.epsIsDirect = true;
+  } else if(d.netProfit!==null && d.weightedAvgShares!==null && d.weightedAvgShares!==0){
+    // Explicit, deliberate carve-out per spec: an absent/inapplicable preference dividend is treated as 0
+    // for THIS calculation only -- it does not affect any other ratio's "never assume missing = 0" rule.
+    var prefDivForEps = d.preferenceDividend!==null ? d.preferenceDividend : 0;
+    d.eps = (d.netProfit - prefDivForEps) / d.weightedAvgShares;
+    d.epsIsDirect = false;
+  } else {
+    d.eps = null;
+    d.epsIsDirect = null;
+  }
+
+  d.bookValuePerShare = (d.shareholdersEquity!==null && d.equitySharesOutstanding!==null && d.equitySharesOutstanding!==0)
+    ? d.shareholdersEquity / d.equitySharesOutstanding : null;
+
   return d;
 }
 
@@ -817,10 +859,11 @@ function deriveFinancials(income, balance, overrides){
 function available(derived, keys){ return keys.every(function(k){ return derived[k]!==null && derived[k]!==undefined; }); }
 function fmt(v,cur){ return formatCurrency(v,cur); }
 
-var CATEGORY_LABELS = {liquidity:"Liquidity", solvency:"Capital Structure / Solvency", profitability:"Profitability", efficiency:"Efficiency / Activity"};
+var CATEGORY_LABELS = {liquidity:"Liquidity", solvency:"Capital Structure / Solvency", profitability:"Profitability", efficiency:"Efficiency / Activity", market:"Market & Shareholder Ratios"};
 
 var RATIOS = [
   {key:"currentRatio", name:"Current Ratio", category:"liquidity", unit:"x", formula:"Current Assets ÷ Current Liabilities",
+   simple:"Can the company pay its short-term bills using what it owns in the short term?",
    requiredKeys:["currentAssets","currentLiabilities"],
    calculate:function(d){ return d.currentLiabilities===0?null:d.currentAssets/d.currentLiabilities; },
    formulaCalc:function(d,cur){ return fmt(d.currentAssets,cur)+" ÷ "+fmt(d.currentLiabilities,cur); },
@@ -830,6 +873,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Liquidity buffer looks comfortable. Keep monitoring so idle current assets don't build up unproductively.", warning:"The buffer is thin. Tighten receivables collection and review short-term borrowing levels before they compress liquidity further.", critical:"Current liabilities exceed current assets significantly. Prioritise renegotiating short-term obligations and accelerating cash conversion."}[s]; }},
 
   {key:"quickRatio", name:"Quick Ratio", category:"liquidity", unit:"x", formula:"(Current Assets − Inventory) ÷ Current Liabilities",
+   simple:"If the company couldn't sell any of its inventory, could it still pay its short-term bills?",
    requiredKeys:["currentAssets","inventory","currentLiabilities"],
    calculate:function(d){ return d.currentLiabilities===0?null:(d.currentAssets-d.inventory)/d.currentLiabilities; },
    formulaCalc:function(d,cur){ return "("+fmt(d.currentAssets,cur)+" − "+fmt(d.inventory,cur)+") ÷ "+fmt(d.currentLiabilities,cur); },
@@ -839,6 +883,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Liquid assets comfortably cover short-term obligations even without relying on inventory.", warning:"Liquidity excluding inventory is tight. Watch how quickly receivables and cash reserves can be mobilised if needed.", critical:"Without inventory, current assets fall well short of current liabilities. This points to a real near-term cash risk."}[s]; }},
 
   {key:"cashRatio", name:"Cash Ratio", category:"liquidity", unit:"x", formula:"Cash & Cash Equivalents ÷ Current Liabilities",
+   simple:"Using only the cash sitting in the bank right now, could the company pay its short-term bills?",
    requiredKeys:["cash","currentLiabilities"],
    calculate:function(d){ return d.currentLiabilities===0?null:d.cash/d.currentLiabilities; },
    formulaCalc:function(d,cur){ return fmt(d.cash,cur)+" ÷ "+fmt(d.currentLiabilities,cur); },
@@ -848,6 +893,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Cash reserves provide a strong immediate cushion against short-term obligations.", warning:"Cash cover is moderate. Maintain a cash buffer rather than relying solely on receivables or inventory conversion.", critical:"Cash on hand is low relative to current liabilities. Build a cash reserve and review payment timing with suppliers and lenders."}[s]; }},
 
   {key:"debtToEquity", name:"Debt-to-Equity Ratio", category:"solvency", unit:"x", formula:"Total Debt ÷ Shareholders' Equity",
+   simple:"How much debt does the company use compared with the owners' money?",
    requiredKeys:["totalDebt","shareholdersEquity"],
    calculate:function(d){ return d.shareholdersEquity===0?null:d.totalDebt/d.shareholdersEquity; },
    formulaCalc:function(d,cur){ return fmt(d.totalDebt,cur)+" ÷ "+fmt(d.shareholdersEquity,cur); },
@@ -857,6 +903,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Leverage is conservative. There is likely room to raise debt for growth if a good opportunity arises.", warning:"Debt is a meaningful part of the capital structure. Avoid adding further leverage until earnings comfortably cover interest.", critical:"Debt significantly exceeds shareholders' equity. Prioritise debt reduction or equity infusion to rebalance the capital structure."}[s]; }},
 
   {key:"debtRatio", name:"Debt Ratio", category:"solvency", unit:"x", formula:"Total Debt ÷ Total Assets",
+   simple:"Out of everything the company owns, how much was paid for using borrowed money?",
    requiredKeys:["totalDebt","totalAssets"],
    calculate:function(d){ return d.totalAssets===0?null:d.totalDebt/d.totalAssets; },
    formulaCalc:function(d,cur){ return fmt(d.totalDebt,cur)+" ÷ "+fmt(d.totalAssets,cur); },
@@ -866,6 +913,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"A modest share of assets is debt-funded, leaving a solid equity cushion.", warning:"A significant share of assets is debt-funded. Monitor asset quality and repayment schedules closely.", critical:"Most of the asset base is financed by debt. This raises solvency risk if earnings or asset values come under pressure."}[s]; }},
 
   {key:"capitalGearing", name:"Capital Gearing Ratio", category:"solvency", unit:"x", formula:"Fixed Interest Bearing Securities ÷ Equity Shareholders' Funds",
+   simple:"How much of the company's funding comes from fixed-repayment sources (like loans) instead of ordinary shareholders?",
    requiredKeys:["fixedInterestBearingSecurities","shareholdersEquity"],
    calculate:function(d){ return d.shareholdersEquity===0?null:d.fixedInterestBearingSecurities/d.shareholdersEquity; },
    formulaCalc:function(d,cur){ return fmt(d.fixedInterestBearingSecurities,cur)+" ÷ "+fmt(d.shareholdersEquity,cur); },
@@ -875,6 +923,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"The company is low-geared — equity holders bear most of the capital risk, which is generally more stable.", warning:"Gearing is moderate. Equity returns will be noticeably sensitive to swings in operating profit.", critical:"The company is high-geared. Small changes in operating profit will produce large swings in returns to equity holders — consider reducing fixed-interest capital."}[s]; }},
 
   {key:"interestCoverage", name:"Interest Coverage Ratio", category:"solvency", unit:"x", formula:"EBIT ÷ Interest Expense",
+   simple:"Does the company earn enough from its normal business to comfortably pay the interest on its loans?",
    requiredKeys:["ebit","interestExpense"],
    calculate:function(d){ return d.interestExpense===0?null:d.ebit/d.interestExpense; },
    formulaCalc:function(d,cur){ return fmt(d.ebit,cur)+" ÷ "+fmt(d.interestExpense,cur); },
@@ -884,6 +933,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Interest obligations are comfortably covered by operating profit.", warning:"Coverage is tight. A downturn in operating profit could make interest payments difficult to service.", critical:"Operating profit barely covers, or does not cover, interest expense. This is a serious solvency warning sign."}[s]; }},
 
   {key:"grossProfitRatio", name:"Gross Profit Ratio", category:"profitability", unit:"%", formula:"Gross Profit ÷ Revenue × 100",
+   simple:"Out of every ₹100 the company earns from sales, how much is left after paying the direct cost of making or buying the product?",
    requiredKeys:["grossProfit","revenue"],
    calculate:function(d){ return d.revenue===0?null:(d.grossProfit/d.revenue)*100; },
    formulaCalc:function(d,cur){ return fmt(d.grossProfit,cur)+" ÷ "+fmt(d.revenue,cur)+" × 100"; },
@@ -893,6 +943,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Core production/trading margin is strong. Protect it by locking in input costs where possible.", warning:"Gross margin is moderate. Review input costs, supplier terms, and pricing to protect this margin.", critical:"Gross margin is thin, leaving little room to absorb overheads. Reassess pricing and direct-cost structure urgently."}[s]; }},
 
   {key:"operatingProfitRatio", name:"Operating Profit Ratio", category:"profitability", unit:"%", formula:"Operating Profit ÷ Revenue × 100",
+   simple:"Out of every ₹100 the company earns from sales, how much is left after paying to actually run the business day-to-day?",
    requiredKeys:["operatingProfit","revenue"],
    calculate:function(d){ return d.revenue===0?null:(d.operatingProfit/d.revenue)*100; },
    formulaCalc:function(d,cur){ return fmt(d.operatingProfit,cur)+" ÷ "+fmt(d.revenue,cur)+" × 100"; },
@@ -902,6 +953,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Operating efficiency is strong, with healthy profit left after running costs.", warning:"Operating expenses are taking a large bite out of margin. Review administrative and operating costs for savings.", critical:"Operating expenses are eroding most or all of the gross margin. Renegotiate major cost contracts and cut non-essential spend."}[s]; }},
 
   {key:"netProfitRatio", name:"Net Profit Ratio", category:"profitability", unit:"%", formula:"Net Profit ÷ Revenue × 100",
+   simple:"Out of every ₹100 the company earns from sales, how much is left as pure profit after every single cost?",
    requiredKeys:["netProfit","revenue"],
    calculate:function(d){ return d.revenue===0?null:(d.netProfit/d.revenue)*100; },
    formulaCalc:function(d,cur){ return fmt(d.netProfit,cur)+" ÷ "+fmt(d.revenue,cur)+" × 100"; },
@@ -911,6 +963,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Bottom-line profitability is healthy relative to revenue.", warning:"Net margin is modest. Look across COGS, operating costs, and interest expense together to find where margin is leaking.", critical:"Net margin is very thin or negative. A full cost review across the P&L is warranted before this becomes a cash issue."}[s]; }},
 
   {key:"roe", name:"Return on Equity (ROE)", category:"profitability", unit:"%", formula:"Net Profit ÷ Shareholders' Equity × 100",
+   simple:"How much profit is the company making from the owners' money?",
    requiredKeys:["netProfit","shareholdersEquity"],
    calculate:function(d){ return d.shareholdersEquity===0?null:(d.netProfit/d.shareholdersEquity)*100; },
    formulaCalc:function(d,cur){ return fmt(d.netProfit,cur)+" ÷ "+fmt(d.shareholdersEquity,cur)+" × 100"; },
@@ -920,6 +973,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Returns to shareholders are strong relative to the equity invested.", warning:"Returns to equity are moderate. Consider whether profitability or capital efficiency can be improved.", critical:"Returns to shareholders are weak. Examine both profit margins and how efficiently equity capital is being deployed."}[s]; }},
 
   {key:"roa", name:"Return on Assets (ROA)", category:"profitability", unit:"%", formula:"Net Profit ÷ Total Assets × 100",
+   simple:"How much profit is the company squeezing out of everything it owns?",
    requiredKeys:["netProfit","totalAssets"],
    calculate:function(d){ return d.totalAssets===0?null:(d.netProfit/d.totalAssets)*100; },
    formulaCalc:function(d,cur){ return fmt(d.netProfit,cur)+" ÷ "+fmt(d.totalAssets,cur)+" × 100"; },
@@ -929,6 +983,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Assets are being deployed efficiently to generate profit.", warning:"Asset utilisation is moderate. Review underused assets or slow-moving inventory that ties up capital without generating returns.", critical:"Return on assets is weak. Investigate whether assets are underutilised, idle, or overvalued relative to what they generate."}[s]; }},
 
   {key:"inventoryTurnover", name:"Inventory Turnover Ratio", category:"efficiency", unit:"x", formula:"COGS ÷ Inventory",
+   simple:"How many times a year does the company sell through its entire stock?",
    requiredKeys:["cogs","inventory"],
    calculate:function(d){ return (d.inventory===0||d.inventory===null)?null:d.cogs/d.inventory; },
    formulaCalc:function(d,cur){ return fmt(d.cogs,cur)+" ÷ "+fmt(d.inventory,cur); },
@@ -938,6 +993,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Inventory is moving efficiently through the business.", warning:"Inventory turnover is moderate. Review slow-moving stock categories and reorder quantities.", critical:"Inventory is turning over slowly, tying up cash. Reassess purchasing volumes, obsolete stock, and demand forecasting."}[s]; }},
 
   {key:"receivablesTurnover", name:"Receivables Turnover Ratio", category:"efficiency", unit:"x", formula:"Revenue ÷ Accounts Receivable",
+   simple:"How quickly does the company actually collect cash from customers who bought on credit?",
    requiredKeys:["revenue","receivables"],
    calculate:function(d){ return (d.receivables===0||d.receivables===null)?null:d.revenue/d.receivables; },
    formulaCalc:function(d,cur){ return fmt(d.revenue,cur)+" ÷ "+fmt(d.receivables,cur); },
@@ -947,6 +1003,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Customer collections are efficient, keeping cash flowing back into the business quickly.", warning:"Collection cycles are moderate. Tighten credit terms or follow up on ageing invoices sooner.", critical:"Cash is tied up in slow-paying customers. Review credit policy, follow-up processes, and customer concentration."}[s]; }},
 
   {key:"payablesTurnover", name:"Payables Turnover Ratio", category:"efficiency", unit:"x", formula:"COGS ÷ Accounts Payable",
+   simple:"How quickly does the company pay the suppliers it owes money to?",
    requiredKeys:["cogs","payables"],
    calculate:function(d){ return (d.payables===0||d.payables===null)?null:d.cogs/d.payables; },
    formulaCalc:function(d,cur){ return fmt(d.cogs,cur)+" ÷ "+fmt(d.payables,cur); },
@@ -956,6 +1013,7 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Supplier payment timing looks balanced — using available credit without straining relationships.", warning:"Payment timing is a little outside the typical range. Review whether this reflects strategy or a cash constraint.", critical:"Payment timing is at an extreme — either very slow (possible supplier strain) or very fast (possible under-use of available credit terms). Review supplier terms and cash planning."}[s]; }},
 
   {key:"assetTurnover", name:"Asset Turnover Ratio", category:"efficiency", unit:"x", formula:"Revenue ÷ Total Assets",
+   simple:"For every ₹1 of stuff the company owns, how much in sales does it generate?",
    requiredKeys:["revenue","totalAssets"],
    calculate:function(d){ return d.totalAssets===0?null:d.revenue/d.totalAssets; },
    formulaCalc:function(d,cur){ return fmt(d.revenue,cur)+" ÷ "+fmt(d.totalAssets,cur); },
@@ -965,13 +1023,48 @@ var RATIOS = [
    recommend:function(s){ return {healthy:"Assets are generating strong sales relative to their size.", warning:"Asset efficiency is moderate. Look for underutilised property, plant, or equipment.", critical:"Revenue generated per unit of assets is low. Investigate idle capacity or overinvestment in assets relative to sales."}[s]; }},
 
   {key:"workingCapitalTurnover", name:"Working Capital Turnover Ratio", category:"efficiency", unit:"x", formula:"Revenue ÷ (Current Assets − Current Liabilities)",
+   simple:"How hard is the company's day-to-day operating cash working to generate sales?",
    requiredKeys:["revenue","currentAssets","currentLiabilities"],
    calculate:function(d){ var wc=d.currentAssets-d.currentLiabilities; if(wc===0) return null; return d.revenue/wc; },
    formulaCalc:function(d,cur){ return fmt(d.revenue,cur)+" ÷ ("+fmt(d.currentAssets,cur)+" − "+fmt(d.currentLiabilities,cur)+")"; },
    status:function(v){ return v===null?null:((v>0&&v<=8)?"healthy":(v<0)?"critical":"warning"); },
    interpret:function(v){ return v<0 ? "Working capital is negative, so this ratio is not meaningful in the usual sense." : "Every ₹1 of net working capital supports "+formatNumber(v)+" in revenue."; },
    whyItMatters:"Working Capital Turnover shows how efficiently short-term operating capital is being used to generate sales.",
-   recommend:function(s){ return {healthy:"Working capital is being used efficiently to generate revenue.", warning:"Working capital efficiency is very high or low relative to typical ranges — confirm whether this is by design.", critical:"Negative working capital means current liabilities exceed current assets. This needs attention alongside the liquidity ratios above."}[s]; }}
+   recommend:function(s){ return {healthy:"Working capital is being used efficiently to generate revenue.", warning:"Working capital efficiency is very high or low relative to typical ranges — confirm whether this is by design.", critical:"Negative working capital means current liabilities exceed current assets. This needs attention alongside the liquidity ratios above."}[s]; }},
+
+  {key:"eps", name:"Earnings Per Share (EPS)", category:"market", unit:"currency", formula:"(Net Profit − Preference Dividend) ÷ Weighted Average Equity Shares",
+   simple:"How much profit belongs to each ordinary/equity share?",
+   requiredKeys:["eps"],
+   calculate:function(d){ return d.eps; },
+   formulaCalc:function(d,cur){
+     if(d.epsIsDirect) return "Directly reported on the statement: "+fmt(d.eps,cur)+" per share";
+     var prefDiv = d.preferenceDividend!==null && d.preferenceDividend!==undefined ? d.preferenceDividend : 0;
+     return "("+fmt(d.netProfit,cur)+" − "+fmt(prefDiv,cur)+") ÷ "+formatNumber(d.weightedAvgShares,0)+" shares";
+   },
+   status:function(v){ return v===null?null:"informational"; },
+   interpret:function(v,d,cur){ return (d.epsIsDirect?"As directly reported on the statement, each":"Each")+" equity share earned "+fmt(v,cur)+" of profit for the period."; },
+   whyItMatters:"EPS shows how much of the company's profit is attributable to each individual equity share — the basis most per-share and market-valuation comparisons build on. There is no universal 'good' or 'bad' EPS value in isolation; it depends on the share price and how it compares with the company's own history and peers.",
+   recommend:function(s){ return "This figure is informational rather than a pass/fail check — compare it with prior years (see Trends) and against the share's market price (P/E, below) rather than judging it as healthy or unhealthy on its own."; }},
+
+  {key:"bvps", name:"Book Value Per Share (BVPS)", category:"market", unit:"currency", formula:"Shareholders' Equity ÷ Equity Shares Outstanding",
+   simple:"If the company's net assets were divided among its equity shares, how much would belong to each share?",
+   requiredKeys:["bookValuePerShare"],
+   calculate:function(d){ return d.bookValuePerShare; },
+   formulaCalc:function(d,cur){ return fmt(d.shareholdersEquity,cur)+" ÷ "+formatNumber(d.equitySharesOutstanding,0)+" shares"; },
+   status:function(v){ return v===null?null:"informational"; },
+   interpret:function(v,d,cur){ return "Each equity share represents "+fmt(v,cur)+" of the company's accounting net worth (shareholders' equity)."; },
+   whyItMatters:"Book Value Per Share shows the accounting net worth behind each share, based on what's on the balance sheet — not its market value. There is no universal healthy/unhealthy threshold for this figure on its own.",
+   recommend:function(s){ return "Book value reflects accounting net worth, not market value — compare it with the share's market price and with prior years rather than judging it in isolation."; }},
+
+  {key:"pe", name:"Price-to-Earnings Ratio (P/E)", category:"market", unit:"times", formula:"Market Price Per Share ÷ EPS",
+   simple:"How much are investors paying for ₹1 of the company's earnings?",
+   requiredKeys:["marketPricePerShare","eps"],
+   calculate:function(d){ return (d.eps===0||d.eps===null)?null:d.marketPricePerShare/d.eps; },
+   formulaCalc:function(d,cur){ return fmt(d.marketPricePerShare,cur)+" ÷ "+fmt(d.eps,cur); },
+   status:function(v){ return v===null?null:"informational"; },
+   interpret:function(v){ return "Investors are currently paying "+formatNumber(v)+"× the company's per-share earnings for the stock."; },
+   whyItMatters:"P/E shows how the market is currently pricing the company's earnings. A higher or lower P/E is not inherently good or bad — it depends heavily on industry, growth expectations, market conditions, and how peers are valued. VR FinSight deliberately does not label a P/E as healthy, warning, or critical.",
+   recommend:function(s){ return "P/E is context-dependent — compare it against the company's own history, its growth trajectory, and similar companies in the same industry, rather than treating a single number as inherently good or bad."; }}
 ];
 
 function evaluateRatios(derived, currency){
@@ -988,7 +1081,10 @@ function evaluateRatios(derived, currency){
     var status = r.status(value);
     return Object.assign({}, r, {
       available:true, value:value, status:status,
-      formattedValue: r.unit==="%" ? formatPercent(value) : (formatNumber(value)+(r.unit==="x"?" : 1":"")),
+      formattedValue: r.unit==="%" ? formatPercent(value)
+        : r.unit==="currency" ? fmt(value,currency)
+        : r.unit==="times" ? formatNumber(value)+"×"
+        : (formatNumber(value)+(r.unit==="x"?" : 1":"")),
       interpretation: r.interpret(value, derived, currency),
       calculationDisplay: r.formulaCalc(derived, currency),
       recommendation: r.recommend(status)
@@ -1054,6 +1150,11 @@ function computeHealthScore(results){
     weightedSum += avg*CATEGORY_WEIGHTS[cat]; weightUsed += CATEGORY_WEIGHTS[cat];
   });
   var overall = weightUsed>0 ? Math.round(weightedSum/weightUsed) : null;
+  // Market/shareholder ratios (EPS, BVPS, P/E) are deliberately excluded from the Financial Health Score --
+  // their status is always "informational", never healthy/warning/critical. This entry only lets the
+  // results page show a ratio count for that section; it never feeds weightedSum/overall above.
+  var marketResults = results.filter(function(r){ return r.category==="market" && r.available; });
+  breakdown.market = {score:null, label:CATEGORY_LABELS.market, ratiosUsed:marketResults.length};
   return {overall:overall, breakdown:breakdown};
 }
 function computeCoverage(results){
@@ -1180,6 +1281,7 @@ function renderBalanceStep(){
     + '<div class="field-group-title">Non-Current Assets</div>' + BALANCE_FIELDS.nonCurrentAssets.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
     + '<div class="field-group-title">Current Liabilities</div>' + BALANCE_FIELDS.currentLiabilities.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
     + '<div class="field-group-title">Long-Term Financing</div>' + BALANCE_FIELDS.longTermFinancing.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
+    + '<div class="field-group-title">Market &amp; Shareholder Data (Optional)</div>' + BALANCE_FIELDS.marketData.map(function(f){ return numberField(f, v[f.key], cur); }).join("")
     + '<div class="form-actions"><button class="btn btn-ghost" data-action="prev-step">← Back</button><button class="btn btn-primary" data-action="next-step">Continue →</button></div></div>'
     + '<div class="snapshot-panel" id="liveSnapshot"></div>';
 }
@@ -1197,7 +1299,7 @@ function reviewRow(label, value, cur){
 }
 function renderReviewStep(){
   var cur = state.company.currency;
-  var allBalance = [].concat(BALANCE_FIELDS.currentAssets, BALANCE_FIELDS.nonCurrentAssets, BALANCE_FIELDS.currentLiabilities, BALANCE_FIELDS.longTermFinancing);
+  var allBalance = [].concat(BALANCE_FIELDS.currentAssets, BALANCE_FIELDS.nonCurrentAssets, BALANCE_FIELDS.currentLiabilities, BALANCE_FIELDS.longTermFinancing, BALANCE_FIELDS.marketData);
   return progressBar(4)+'<div class="form-card"><h2>Review Entered Data</h2><p class="form-sub">Check everything looks right before VR FinSight runs the analysis.</p>'
     + '<div class="review-section"><h4>Company</h4>'+reviewRow("Company Name", state.company.companyName)+reviewRow("Industry", state.company.industry)+reviewRow("Financial Year", state.company.financialYear)+reviewRow("Currency", (CURRENCIES[cur]||{}).label||cur)+'</div>'
     + '<div class="review-section"><h4>Profitability Inputs</h4>'+INCOME_FIELDS.map(function(f){ return reviewRow(f.label, state.income[f.key], cur); }).join("")+'</div>'
@@ -1308,11 +1410,15 @@ function ingestExtraction(fileMeta, extracted){
         bucket.meta[key].alt.push({value:num, source:fileMeta.name});
       }
     }
-    ["revenue","cogs","operatingExpenses","interestExpense","taxExpense"].forEach(function(k){ assign(bucket.income,k,f[k]); });
-    ["cash","receivables","inventory","otherCurrentAssets","ppe","otherNonCurrentAssets","payables","shortTermBorrowings","otherCurrentLiabilities","longTermDebt","preferenceCapital","equityCapital","reserves"].forEach(function(k){ assign(bucket.balance,k,f[k]); });
+    ["revenue","cogs","operatingExpenses","interestExpense","taxExpense","preferenceDividend","weightedAvgShares"].forEach(function(k){ assign(bucket.income,k,f[k]); });
+    ["cash","receivables","inventory","otherCurrentAssets","ppe","otherNonCurrentAssets","payables","shortTermBorrowings","otherCurrentLiabilities","longTermDebt","preferenceCapital","equityCapital","reserves","equitySharesOutstanding","marketPricePerShare"].forEach(function(k){ assign(bucket.balance,k,f[k]); });
     ["grossProfit","operatingProfit","netProfit","totalAssets","totalDebt","shareholdersEquity"].forEach(function(k){ assign(bucket.overrides,k,f[k]); });
     if(f.totalCurrentAssets!=null) assign(bucket.overrides,"currentAssets", f.totalCurrentAssets);
     if(f.totalCurrentLiabilities!=null) assign(bucket.overrides,"currentLiabilities", f.totalCurrentLiabilities);
+    // A directly-reported EPS figure (companies often print "EPS: X.XX" on the P&L) is stored as an
+    // override, exactly like grossProfit/netProfit/etc. above -- deriveFinancials() gives it priority
+    // over its own formula, per the spec's "preserve the directly reported EPS" requirement.
+    if(f.epsReported!=null) assign(bucket.overrides,"eps", f.epsReported);
     // Transparency metadata only — records WHICH fields the model derived (vs. directly read) and how.
     // Purely additive: never consumed by deriveFinancials/evaluateRatios/RATIOS, so it cannot change
     // any ratio, health score, or existing calculation. Stored for audit/future UI use.
@@ -1473,7 +1579,8 @@ var UPLOAD_OVERRIDE_FIELDS = [
   {key:"netProfit", label:"Net Profit (as reported on statement)"},
   {key:"totalAssets", label:"Total Assets (as reported on statement)"},
   {key:"totalDebt", label:"Total Debt (as reported on statement)"},
-  {key:"shareholdersEquity", label:"Shareholders' Equity (as reported on statement)"}
+  {key:"shareholdersEquity", label:"Shareholders' Equity (as reported on statement)"},
+  {key:"eps", label:"EPS (as directly reported on statement, if shown)"}
 ];
 function renderUploadCompanyCard(){
   var c = state.upload.company;
@@ -1497,6 +1604,7 @@ function renderYearReviewPanel(yk, active){
     + '<div class="field-group-title">Non-Current Assets</div>' + BALANCE_FIELDS.nonCurrentAssets.map(function(f){ return field(f, b.balance); }).join("")
     + '<div class="field-group-title">Current Liabilities</div>' + BALANCE_FIELDS.currentLiabilities.map(function(f){ return field(f, b.balance); }).join("")
     + '<div class="field-group-title">Long-Term Financing</div>' + BALANCE_FIELDS.longTermFinancing.map(function(f){ return field(f, b.balance); }).join("")
+    + '<div class="field-group-title">Market &amp; Shareholder Data (Optional)</div>' + BALANCE_FIELDS.marketData.map(function(f){ return field(f, b.balance); }).join("")
     + '<div class="field-group-title">Reported Summary Figures <span style="text-transform:none; color:var(--ink-faint); font-family:var(--font-b); letter-spacing:0;">(used only to fill a gap above, when a breakdown wasn\'t available)</span></div>'
     + UPLOAD_OVERRIDE_FIELDS.map(function(f){ return uploadEditableField(f, b.overrides[f.key], curSym, yk, b.meta[f.key], true); }).join("")
     + (sortedUploadYearKeys().length>1 ? ('<button type="button" class="btn btn-ghost btn-sm" data-remove-year="'+esc(yk)+'" style="margin-top:8px;">Remove this year from analysis</button>') : '')
@@ -1701,6 +1809,19 @@ function classifyTrendByMagnitude(values){
   if(pct<-3) return "Declining";
   return "Stable";
 }
+// Market/shareholder ratios (EPS, BVPS, P/E) have no universal "higher/lower is better" meaning (their
+// status is always "informational") -- their Trends chip must never say "Improving"/"Declining", which
+// would imply a value judgment. This purely factual variant reports "Increasing"/"Decreasing"/"Stable".
+function classifyTrendByMagnitudeNeutral(values){
+  var known = values.filter(function(v){ return v!==null && v!==undefined; });
+  if(known.length<2) return null;
+  var first = known[0], last = known[known.length-1];
+  if(first===0) return last>0?"Increasing":(last<0?"Decreasing":"Stable");
+  var pct = ((last-first)/Math.abs(first))*100;
+  if(pct>3) return "Increasing";
+  if(pct<-3) return "Decreasing";
+  return "Stable";
+}
 function computeTrends(entries){
   var cur = state.upload.company.currency;
   var rows = [];
@@ -1726,12 +1847,18 @@ function computeTrends(entries){
       if(r){ name=r.name; unit=r.unit; }
       return (r && r.available) ? r.value : null;
     });
-    var statuses = entries.map(function(e){
-      var r = e.analysis.results.filter(function(x){ return x.key===ratioDef.key; })[0];
-      return (r && r.available) ? r.status : null;
-    });
+    var trend;
+    if(ratioDef.category==="market"){
+      trend = classifyTrendByMagnitudeNeutral(values);
+    } else {
+      var statuses = entries.map(function(e){
+        var r = e.analysis.results.filter(function(x){ return x.key===ratioDef.key; })[0];
+        return (r && r.available) ? r.status : null;
+      });
+      trend = classifyTrendByStatus(statuses);
+    }
     rows.push({key:ratioDef.key, label:name||ratioDef.name, type:"ratio", unit:unit, category:ratioDef.category,
-      values: values, trend: classifyTrendByStatus(statuses)});
+      values: values, trend: trend});
   });
 
   var insights = [];
@@ -1767,6 +1894,8 @@ function trendCellValue(row, idx){
   if(v===null||v===undefined) return '<span class="trend-cell-na">N/A</span>';
   if(row.type==="currency") return formatCurrency(v, state.upload.company.currency);
   if(row.type==="score") return v+"/100";
+  if(row.unit==="currency") return formatCurrency(v, state.upload.company.currency);
+  if(row.unit==="times") return formatNumber(v,2)+"×";
   return formatNumber(v,2)+(row.unit==="%"?"%":row.unit==="x"?"x":"");
 }
 // Shows BOTH the absolute change and the % change versus the previous year, per the requirement
@@ -1798,6 +1927,8 @@ function chartAxisLabel(row, v){
 function chartPointLabel(row, v){
   if(row.type==="score") return Math.round(v)+"/100";
   if(row.type==="currency") return formatCurrency(v, state.upload.company.currency);
+  if(row.unit==="currency") return formatCurrency(v, state.upload.company.currency);
+  if(row.unit==="times") return formatNumber(v,2)+"×";
   return formatNumber(v,2)+(row.unit==="%"?"%":row.unit==="x"?"x":"");
 }
 // Dependency-free inline SVG line chart — no external chart library required, keeps the page
@@ -1862,9 +1993,9 @@ function renderTrendsPanel(entries, cur){
     return '<div class="score-trend-row"><span class="stlabel">'+esc(e.label)+'</span><div class="stbar-track"><div class="stbar-fill" style="width:'+(s||0)+'%; background:'+(status?statusColorVar(status):"var(--border)")+'"></div></div><span class="stval" style="color:'+(status?statusColorVar(status):"var(--ink-faint)")+'">'+(s!==null?s+"/100":"—")+'</span></div>';
   }).join("");
   var defaultIdx = 0; // Financial Health Score
-  var chartOptions = trends.rows.map(function(row,idx){ return '<option value="'+idx+'"'+(idx===defaultIdx?" selected":"")+'>'+esc(row.label)+'</option>'; }).join("");
+  var trendSelectOptions = trends.rows.map(function(row,idx){ return {value:String(idx), label:row.label}; });
   var chartCard = '<div class="trend-chart-card">'
-    + '<div class="trend-chart-head"><h3>Interactive Trend Chart</h3><select id="trendChartSelect" class="trend-select" aria-label="Choose a metric to chart">'+chartOptions+'</select></div>'
+    + '<div class="trend-chart-head"><h3>Interactive Trend Chart</h3><div class="trend-select-wrap">'+renderCustomSelect("trendChartSelect", trendSelectOptions, String(defaultIdx), "Choose a metric")+'</div></div>'
     + '<div id="trendChartTitleRow" class="trend-chart-title-row"><span class="trend-chart-metric-name">'+esc(trends.rows[defaultIdx].label)+'</span>'+trendChipHtml(trends.rows[defaultIdx].trend)+'</div>'
     + '<div id="trendChartHolder">'+buildLineChartSVG(trends.labels, trends.rows[defaultIdx])+'</div>'
     + '</div>';
@@ -1876,7 +2007,7 @@ function renderTrendsPanel(entries, cur){
       }).join("")
     + '</tbody></table></div>';
   return '<div class="container" style="padding:0 24px 40px;">'
-    + '<div class="section-head" style="max-width:none; margin-bottom:28px;"><span class="section-eyebrow">Across '+entries.length+' years</span><h2>Trends &amp; Year-on-Year Insights</h2><p>All 17 ratios calculated separately for each year, with year-over-year change and trend direction — using the same formulas and thresholds as the single-year analysis.</p></div>'
+    + '<div class="section-head" style="max-width:none; margin-bottom:28px;"><span class="section-eyebrow">Across '+entries.length+' years</span><h2>Trends &amp; Year-on-Year Insights</h2><p>All 20 ratios (including EPS, Book Value Per Share, and P/E) calculated separately for each year, with year-over-year change and trend direction — using the same formulas and thresholds as the single-year analysis.</p></div>'
     + '<div style="margin-bottom:34px;">'+scoreRows+'</div>'
     + chartCard
     + tableHtml
@@ -1916,15 +2047,14 @@ function bindUploadResultsEvents(){
       appContainer.querySelectorAll(".results-tab-panel").forEach(function(p){ p.classList.toggle("active", p.getAttribute("data-results-panel")===currentResultsTab); });
     });
   });
-  var chartSelect = document.getElementById("trendChartSelect");
-  if(chartSelect){
-    chartSelect.addEventListener("change", function(){ renderChartHolder(parseInt(chartSelect.value,10)); });
-  }
+  // trendChartSelect is now a custom dropdown (see renderCustomSelect); its selection is handled by
+  // the existing global cs-option click delegation, which calls renderChartHolder() for this specific
+  // trigger id -- see the "if(targetId==="trendChartSelect")" branch there.
   bindResultsInteractions();
 }
 
 
-function statusColorVar(status){ return {healthy:"var(--healthy)", warning:"var(--warning)", critical:"var(--critical)"}[status] || "var(--ink-faint)"; }
+function statusColorVar(status){ return {healthy:"var(--healthy)", warning:"var(--warning)", critical:"var(--critical)", informational:"var(--v2)"}[status] || "var(--ink-faint)"; }
 function coverageRing(percent){
   var r=28, c=2*Math.PI*r, offset=c-(percent/100)*c;
   return '<div class="coverage-ring"><svg width="70" height="70" viewBox="0 0 68 68"><circle cx="34" cy="34" r="'+r+'" stroke="var(--border)" stroke-width="6" fill="none"/><circle cx="34" cy="34" r="'+r+'" stroke="url(#ringGrad)" stroke-width="6" fill="none" stroke-dasharray="'+c+'" stroke-dashoffset="'+offset+'" stroke-linecap="round"/><defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c4dff"/><stop offset="1" stop-color="#00e5ff"/></linearGradient></defs></svg><div class="pct">'+percent+'%</div></div>';
@@ -1953,12 +2083,13 @@ function ratioCard(r, idSuffix, allowJumpToInputs){
       + (allowJumpToInputs?('<button class="btn btn-ghost btn-sm add-missing-btn" data-action="'+targetAction+'">+ Add Missing Information</button>'):'')
       + '</div>';
   }
-  var statusIcon = r.status==="healthy"?"🟢 Healthy":r.status==="warning"?"🟡 Warning":"🔴 Critical";
+  var statusIcon = r.status==="healthy"?"🟢 Healthy":r.status==="warning"?"🟡 Warning":r.status==="critical"?"🔴 Critical":"ℹ️ Informational";
+  var simpleMeaningHtml = r.simple ? ('<div class="panel-label" style="margin-top:13px;">Simple meaning</div><div class="panel-simple">'+esc(r.simple)+'</div>') : '';
   return '<div class="ratio-card status-'+r.status+'" data-ratio="'+r.key+'"><div class="ratio-card-head"><span class="ratio-name">'+r.name+'</span><span class="status-badge '+r.status+'">'+statusIcon+'</span></div>'
     + '<div class="ratio-value" style="color:'+statusColorVar(r.status)+'">'+r.formattedValue+'</div>'
     + '<p class="ratio-interpretation">'+r.interpretation+'</p>'
     + '<div class="ratio-actions"><button class="ratio-toggle" data-toggle="formula-'+r.key+idSuffix+'">See Formula</button><button class="ratio-toggle" data-toggle="why-'+r.key+idSuffix+'">Why It Matters</button><button class="ratio-toggle" data-toggle="improve-'+r.key+idSuffix+'">How To Improve</button></div>'
-    + '<div class="ratio-panel" id="formula-'+r.key+idSuffix+'"><div class="panel-label">Formula</div><div class="panel-formula">'+r.name+' = '+r.formula+'</div><div class="panel-label">Your Calculation</div><div class="panel-calc">'+r.calculationDisplay+' = '+r.formattedValue+'</div></div>'
+    + '<div class="ratio-panel" id="formula-'+r.key+idSuffix+'"><div class="panel-label">Formula</div><div class="panel-formula">'+r.name+' = '+r.formula+'</div><div class="panel-label">Your Calculation</div><div class="panel-calc">'+r.calculationDisplay+' = '+r.formattedValue+'</div>'+simpleMeaningHtml+'</div>'
     + '<div class="ratio-panel" id="why-'+r.key+idSuffix+'"><p>'+r.whyItMatters+'</p></div>'
     + '<div class="ratio-panel" id="improve-'+r.key+idSuffix+'"><p>'+r.recommendation+'</p></div></div>';
 }
@@ -1988,8 +2119,12 @@ function renderResultsBody(analysis, cur, idSuffix, allowJumpToInputs, includeFo
   var results = analysis.results, findings = analysis.findings, score = analysis.score, coverage = analysis.coverage, diagnosis = analysis.diagnosis, plan = analysis.plan;
 
   var categories = ["liquidity","solvency","profitability","efficiency"];
-  var categorySections = categories.map(function(cat){
+  // Market ratios get their own results section using a SEPARATE list from `categories` above, so the
+  // little Financial Health Score breakdown tiles further down stay exactly as they were -- unaffected.
+  var allCategoriesForSections = categories.concat(["market"]);
+  var categorySections = allCategoriesForSections.map(function(cat){
     var catResults = results.filter(function(r){ return r.category===cat; });
+    if(catResults.length===0) return "";
     var catScore = score.breakdown[cat];
     return '<div class="category-section"><div class="category-header"><h3>'+CATEGORY_LABELS[cat]+'</h3><span class="cat-meta">'+catScore.ratiosUsed+' of '+catResults.length+' indicators evaluated'+(catScore.score!==null?(' · Score '+catScore.score+'/100'):'')+'</span></div>'
       + '<div class="ratio-grid">'+catResults.map(function(r){ return ratioCard(r, idSuffix, allowJumpToInputs); }).join("")+'</div></div>';
@@ -2218,6 +2353,7 @@ document.addEventListener("click", function(e){
       if(mapping) mapping.obj()[mapping.key] = val;
       updateSnapshot();
       if(targetId==="u_currency" && state.mode==="upload" && uploadStep==="review"){ renderStep(); }
+      if(targetId==="trendChartSelect"){ renderChartHolder(parseInt(val,10)); }
     }
     closeAllCsPanels();
     return;
