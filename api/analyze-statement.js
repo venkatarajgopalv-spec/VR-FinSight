@@ -222,6 +222,19 @@ function parseRetryAfterMs(resp) {
   return null;
 }
 
+async function responseLooksLikeHardQuotaExceeded(resp) {
+  if (!resp || !resp.clone) return false;
+  try {
+    var cloned = resp.clone();
+    var payload = await cloned.json();
+    var message = "";
+    try { message = JSON.stringify(payload || ""); } catch (e) { message = String(payload || ""); }
+    return /you exceeded your current quota|quota exceeded|free_tier_requests|quota limit reached/i.test(message);
+  } catch (e) {
+    return false;
+  }
+}
+
 async function callGeminiWithRetry(url, options) {
   var lastResp = null;
   for (var attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -233,6 +246,13 @@ async function callGeminiWithRetry(url, options) {
     var resp = await fetch(url, options);
     if (resp.ok) return resp;
     lastResp = resp;
+
+    // A hard quota exhaustion can arrive as HTTP 429. Inspect the error body
+    // before applying the transient retry policy so we do not waste retries.
+    if (await responseLooksLikeHardQuotaExceeded(resp)) {
+      return resp;
+    }
+
     if (TRANSIENT_STATUS_CODES.indexOf(resp.status) === -1) {
       // Permanent/non-retryable error (e.g. 401/400/404) — stop immediately.
       return resp;
