@@ -365,6 +365,7 @@ module.exports = async function handler(req, res) {
     if (!geminiResp.ok) {
 
       var errText = geminiResp.statusText;
+      var isQuotaExceeded = false;
 
       try {
 
@@ -378,7 +379,25 @@ module.exports = async function handler(req, res) {
           errText = errJson.error.message;
         }
 
-      } catch (e) {}
+        // A hard free-tier quota exhaustion is different from a temporary
+        // rate-limit/overload response. Do not ask the frontend to retry it.
+        var quotaText = "";
+        try { quotaText = JSON.stringify(errJson || ""); } catch (e) { quotaText = String(errText || ""); }
+        isQuotaExceeded = /you exceeded your current quota|quota exceeded|free_tier_requests|quota limit reached/i.test(
+          String(errText || "") + " " + quotaText
+        );
+
+      } catch (e) {
+        isQuotaExceeded = /quota exceeded|free_tier_requests|quota limit reached/i.test(String(errText || ""));
+      }
+
+      if (isQuotaExceeded) {
+        res.status(429).json({
+          errorType: "QUOTA_EXCEEDED",
+          error: "Gemini API quota exceeded. Your current Gemini API request limit has been reached. Please try again after the quota resets or check your Gemini API usage/billing settings."
+        });
+        return;
+      }
 
       res.status(geminiResp.status).json({
         error: "Gemini API error: " + errText
